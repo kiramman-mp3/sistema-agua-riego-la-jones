@@ -8,7 +8,7 @@ const swaggerDefinition = {
     description: 'Documentación oficial e interactiva de las APIs REST para la administración de usuarios, lotes georreferenciados, turnos de agua, asistencias a asambleas/mingas, recaudación financiera y auditoría.',
     contact: {
       name: 'Junta de Agua y Riego La Jones',
-      url: 'https://github.com/kiramman-mp3/JuntaAguas-LasJones-Patate'
+      url: 'https://github.com/kiramman-mp3/sistema-agua-riego-la-jones'
     }
   },
   servers: [
