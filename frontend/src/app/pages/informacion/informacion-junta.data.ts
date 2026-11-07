@@ -2,8 +2,9 @@
  * Contenido de la página "Información de la Junta".
  *
  * Los textos de quiénes somos, órganos de dirección, misión y directiva los proporcionó la Junta.
- * El horario y el contacto siguen siendo provisionales hasta que se confirmen. Para actualizar
- * cualquiera basta con editar este archivo; la página no necesita otros cambios.
+ * La dirección de la sede la proporcionó la Junta. El horario, el teléfono y el correo siguen
+ * pendientes de confirmar. Para actualizar cualquiera basta con editar este archivo; la página no
+ * necesita otros cambios.
  */
 import { NOMBRES_DIRECTIVA } from '../../core/utils/directiva';
 
@@ -55,11 +56,11 @@ export const INFORMACION_JUNTA = {
     { cargo: 'Secretario', ...NOMBRES_DIRECTIVA.secretario, icono: 'ri-quill-pen-line' },
     { cargo: 'Tesorera', titulo: 'Ing.', nombre: 'Natalia Barrera', icono: 'ri-wallet-3-line' },
   ] as MiembroDirectiva[],
-  // TODO: confirmar horario y medios de contacto con la Junta.
+  // TODO: confirmar horario, teléfono y correo con la Junta.
   contacto: [
     {
-      etiqueta: 'Dirección',
-      valor: 'Casa Comunal Junta La Jones, cantón Patate, Tungurahua, Ecuador',
+      etiqueta: 'Dirección de la sede',
+      valor: 'Complejo PROMACERO, Sector La Merced',
       icono: 'ri-map-pin-line',
     },
     { etiqueta: 'Atención', valor: 'Sábados de 08:00 a 12:00', icono: 'ri-time-line' },
