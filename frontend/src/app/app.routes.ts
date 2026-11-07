@@ -34,6 +34,12 @@ export const routes: Routes = [
       import('./pages/informacion/informacion.component').then((m) => m.InformacionComponent),
   },
   {
+    path: 'privacidad',
+    title: 'Aviso de privacidad · Junta La Jones',
+    loadComponent: () =>
+      import('./pages/privacidad/privacidad.component').then((m) => m.PrivacidadComponent),
+  },
+  {
     path: 'mi-cuenta',
     loadComponent: () =>
       import('./pages/mi-cuenta/mi-cuenta.component').then((m) => m.MiCuentaComponent),

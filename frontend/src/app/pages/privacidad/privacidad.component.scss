@@ -1,0 +1,80 @@
+.privacidad {
+  &__cuerpo {
+    display: grid;
+    gap: clamp(1.5rem, 4vw, 3rem);
+    align-items: start;
+
+    @media (min-width: 900px) {
+      grid-template-columns: 15rem minmax(0, 1fr);
+    }
+  }
+
+  // El índice acompaña la lectura en pantallas anchas; en móvil queda al inicio como lista corta.
+  &__indice {
+    padding-left: 1rem;
+    border-left: 2px solid var(--border-color);
+    font-size: 0.95rem;
+
+    @media (min-width: 900px) {
+      position: sticky;
+      top: 6rem;
+    }
+
+    ul {
+      display: grid;
+      gap: 0.5rem;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    a {
+      color: var(--text-muted);
+      text-decoration: none;
+
+      &:hover,
+      &:focus-visible {
+        color: var(--color-primary);
+        text-decoration: underline;
+      }
+    }
+  }
+
+  &__texto {
+    max-width: 68ch;
+    font-size: 1.05rem;
+    line-height: 1.7;
+
+    p {
+      margin: 0 0 1rem;
+      text-wrap: pretty;
+    }
+
+    ul {
+      margin: 0 0 1rem;
+      padding-left: 1.25rem;
+    }
+
+    li {
+      margin-bottom: 0.5rem;
+    }
+  }
+
+  &__seccion {
+    scroll-margin-top: 6rem;
+    margin-bottom: 2.25rem;
+  }
+
+  &__titulo {
+    margin: 0 0 0.75rem;
+    font-family: var(--font-display);
+    font-size: 1.35rem;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+  }
+
+  &__fecha {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+  }
+}
