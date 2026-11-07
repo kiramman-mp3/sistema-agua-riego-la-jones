@@ -1,5 +1,6 @@
 /** Hoja de asistencia en PDF (A4) con el padrón de un evento, separado por sectores, para recoger firmas. */
 const PDFDocument = require('pdfkit');
+const { LUGAR_POR_DEFECTO } = require('../shared/sede');
 
 const ANCHO_NOMBRE = 220;
 // Alto holgado para que cada usuario pueda firmar o poner su huella en su renglón.
@@ -49,7 +50,7 @@ function escribirListaAsistencia(destino, evento, personas) {
   doc.fontSize(10).fillColor('#000000');
   doc.text(`Evento: ${evento.titulo}`);
   doc.text(`Fecha: ${fechaLegible(evento.fecha)} | Hora: ${String(evento.hora_inicio || '08:00').slice(0, 5)}`);
-  doc.text(`Lugar: ${evento.lugar || 'Casa Comunal Junta La Jones'}`);
+  doc.text(`Lugar: ${evento.lugar || LUGAR_POR_DEFECTO}`);
   if (evento.tipo === 'MINGA' || evento.sector_nombre) {
     doc.text(`Sector: ${evento.sector_nombre || 'Todos los sectores'}`);
   }

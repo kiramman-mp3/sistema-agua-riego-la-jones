@@ -7,9 +7,9 @@ const whatsapp = require('./whatsappClient');
 const { grupoConvocatorias } = require('./configuracionService');
 const { conflict, notFound } = require('../shared/errors');
 const { hoy, fechaLarga } = require('../shared/dates');
+const { LUGAR_POR_DEFECTO } = require('../shared/sede');
 
 const ESTADOS_CONVOCABLES = ['BORRADOR', 'PROGRAMADO', 'CONVOCADO'];
-const LUGAR_POR_DEFECTO = 'Casa Comunal Junta La Jones';
 const MAX_TEXTO = 4000;
 const MAX_PUNTO = 300;
 

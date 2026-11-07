@@ -46,7 +46,7 @@ export class AsambleaFormComponent implements OnInit {
     fecha: sumarDias(hoyEnEcuador(), 7),
     hora_inicio: '18:00',
     hora_fin: '21:00',
-    lugar: 'Casa Comunal Junta La Jones',
+    lugar: 'Complejo PROMACERO, Sector La Merced',
     sector_id: null as number | null,
     genera_multa_ausencia: true,
     puntos_orden_dia: [
