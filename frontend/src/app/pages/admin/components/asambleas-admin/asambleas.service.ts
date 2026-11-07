@@ -6,7 +6,7 @@ import { diaEnEcuador } from '../../../../core/utils/fechas';
 import { EventoItem } from '../../../../core/models/api-payloads';
 import { AsambleaItem, AsistentePadron, PuntoAsamblea } from './asamblea.model';
 
-const LUGAR_POR_DEFECTO = 'Casa Comunal Junta La Jones';
+const LUGAR_POR_DEFECTO = 'Complejo PROMACERO, Sector La Merced';
 
 /** Puntos con los que arranca el acta de una asamblea que aún no tiene ninguno guardado. */
 const PUNTOS_INICIALES: PuntoAsamblea[] = [
