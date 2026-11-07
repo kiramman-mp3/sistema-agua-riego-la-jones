@@ -1,0 +1,38 @@
+<div class="portal privacidad">
+  <header class="portal-cabecera">
+    <app-curvas-nivel />
+    <h1 class="portal-cabecera__titulo">{{ aviso.titulo }}</h1>
+    <p class="portal-cabecera__lead">{{ aviso.resumen }}</p>
+  </header>
+
+  <div class="privacidad__cuerpo">
+    <nav class="privacidad__indice" aria-label="Contenido del aviso">
+      <ul>
+        @for (s of aviso.secciones; track s.id) {
+          <li>
+            <a [href]="'#' + s.id" (click)="irA(s.id, $event)">{{ s.titulo }}</a>
+          </li>
+        }
+      </ul>
+    </nav>
+
+    <article class="privacidad__texto">
+      @for (s of aviso.secciones; track s.id) {
+        <section [id]="s.id" class="privacidad__seccion">
+          <h2 class="privacidad__titulo">{{ s.titulo }}</h2>
+          @for (p of s.parrafos ?? []; track p) {
+            <p>{{ p }}</p>
+          }
+          @if (s.lista?.length) {
+            <ul>
+              @for (item of s.lista; track item) {
+                <li>{{ item }}</li>
+              }
+            </ul>
+          }
+        </section>
+      }
+      <p class="privacidad__fecha">Última actualización: {{ aviso.actualizado }}.</p>
+    </article>
+  </div>
+</div>
