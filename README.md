@@ -152,7 +152,7 @@ La arquitectura desacopla el cliente web del núcleo del servidor mediante una A
 ## 📁 Estructura del Proyecto
 
 ```bash
-JuntaAguas-LasJones-Patate/
+sistema-agua-riego-la-jones/
 ├── .claude/                           # Reglas de estilo y directivas para asistentes de IA
 ├── .github/                           # Integración continua (Lint, Test, Build), auditoría semanal de dependencias y Dependabot
 ├── bd/                                # Configuración de Docker para MySQL 8
@@ -211,8 +211,8 @@ Los secretos y credenciales de acceso nunca deben subirse al repositorio. El pro
 
 ### 1. Clonar el repositorio
 ```bash
-git clone https://github.com/JoseM151/JuntaAguas-LasJones-Patate.git
-cd JuntaAguas-LasJones-Patate
+git clone https://github.com/kiramman-mp3/sistema-agua-riego-la-jones.git
+cd sistema-agua-riego-la-jones
 ```
 
 ### 2. Levantar la base de datos MySQL
