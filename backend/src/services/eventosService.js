@@ -5,6 +5,7 @@
  */
 const { badRequest, notFound, conflict } = require('../shared/errors');
 const { hoy, yaOcurrio } = require('../shared/dates');
+const { LUGAR_POR_DEFECTO } = require('../shared/sede');
 const { conceptoPorCodigo, tarifaVigente, vencimientoPorDefecto } = require('./finanzasService');
 const { guardarDocumento, eliminarDocumento } = require('./documentStorage');
 
@@ -420,7 +421,7 @@ async function crearEvento(conexion, datos, cuentaId) {
                           genera_multa_ausencia, valor_multa, created_by_cuenta_id)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [datos.tipo, datos.titulo, datos.descripcion, datos.fecha, datos.hora_inicio, datos.hora_fin,
-      datos.lugar || 'Casa Comunal Junta La Jones', sectorId, datos.requiere_asistencia, datos.genera_multa_ausencia, valorMulta,
+      datos.lugar || LUGAR_POR_DEFECTO, sectorId, datos.requiere_asistencia, datos.genera_multa_ausencia, valorMulta,
       cuentaId]
   );
   if (puntos.length) {
@@ -463,7 +464,7 @@ async function actualizarEvento(conexion, id, datos) {
 
   const nuevoTitulo = datos.titulo !== undefined ? datos.titulo : evento.titulo;
   const nuevaDescripcion = datos.descripcion !== undefined ? datos.descripcion : evento.descripcion;
-  const nuevoLugar = datos.lugar !== undefined ? (datos.lugar || 'Casa Comunal Junta La Jones') : evento.lugar;
+  const nuevoLugar = datos.lugar !== undefined ? (datos.lugar || LUGAR_POR_DEFECTO) : evento.lugar;
   const nuevoRequiere = datos.requiere_asistencia !== undefined ? datos.requiere_asistencia : evento.requiere_asistencia;
   const nuevoGeneraMulta = datos.genera_multa_ausencia !== undefined ? datos.genera_multa_ausencia : evento.genera_multa_ausencia;
 

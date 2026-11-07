@@ -63,6 +63,9 @@ const MESES = [
   'noviembre',
   'diciembre',
 ];
+/** Lugar del acta cuando el evento no indica otro: la sede de la Junta. */
+const LUGAR_POR_DEFECTO = 'Complejo PROMACERO, Sector La Merced';
+
 /** Directiva que firma las actas y las convocatorias de la Junta. */
 export const DIRECTIVA = {
   presidente: { ...NOMBRES_DIRECTIVA.presidente, cedula: '1801701366' },
@@ -409,7 +412,7 @@ export class ActasService {
         ['Tipo de Evento:', `${evento.tipo || 'ASAMBLEA'} (${subtipo})`],
         ['Fecha de Realización:', fechaTexto],
         ['Hora de Inicio:', `${hora(evento.hora_inicio, '09:00')} hs`],
-        ['Lugar:', evento.lugar || 'Casa Comunal Junta La Jones'],
+        ['Lugar:', evento.lugar || LUGAR_POR_DEFECTO],
         ['Sector:', evento.sector_nombre || 'Todos los sectores'],
         ['Descripción:', evento.descripcion || 'Sin descripción adicional.'],
       ]);
