@@ -152,8 +152,7 @@ La arquitectura desacopla el cliente web del núcleo del servidor mediante una A
 ## 📁 Estructura del Proyecto
 
 ```bash
-JuntaAguas-LasJones-Patate/
-├── .claude/                           # Reglas de estilo y directivas para asistentes de IA
+sistema-agua-riego-la-jones/
 ├── .github/                           # Integración continua (Lint, Test, Build), auditoría semanal de dependencias y Dependabot
 ├── bd/                                # Configuración de Docker para MySQL 8
 │   └── docker-compose.yml             # Orquestación del contenedor de base de datos
@@ -183,7 +182,6 @@ JuntaAguas-LasJones-Patate/
 ├── docs/                              # Documentación técnica, capturas y guías maestras
 │   └── capturas/                      # Evidencias visuales de los módulos del sistema
 ├── scripts/                           # Automatizaciones de arranque y compilación conjunta
-├── CLAUDE.md                          # Protocolo de Git, convenciones de commit y gobernanza
 └── package.json                       # Scripts globales de desarrollo y producción
 ```
 
@@ -211,8 +209,8 @@ Los secretos y credenciales de acceso nunca deben subirse al repositorio. El pro
 
 ### 1. Clonar el repositorio
 ```bash
-git clone https://github.com/JoseM151/JuntaAguas-LasJones-Patate.git
-cd JuntaAguas-LasJones-Patate
+git clone https://github.com/kiramman-mp3/sistema-agua-riego-la-jones.git
+cd sistema-agua-riego-la-jones
 ```
 
 ### 2. Levantar la base de datos MySQL
@@ -427,7 +425,6 @@ Información recopilada a partir del historial de versiones (`git shortlog -sn`)
 * Guía de presentación y demostración: `docs/GUIA_DE_PRESENTACION.md`
 * Justificación y asistencia continua: `docs/justificacion_y_asistencia_continua.md`
 * Optimización de cargas útiles: `docs/optimizacion_payloads.md`
-* Especificación de gobernanza y Git: `CLAUDE.md`
 
 </details>
 
