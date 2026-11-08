@@ -377,7 +377,7 @@ frontend/src/
     └── _finanzas.scss     # Módulo financiero
 ```
 
-## 🍎 7. Acabado (criterios de `.claude/skills/apple-design`)
+## 🍎 7. Acabado
 
 - **Respuesta al presionar:** botones y elementos táctiles escalan a `0.97` en `:active`; no "flotan" al pasar el mouse.
 - **Profundidad:** sombras en capas (`--shadow-sm/md/lg`) y radios que crecen con la superficie (10 px controles, 18 px tarjetas, 22 px modales).

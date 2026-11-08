@@ -167,6 +167,6 @@ La configuración (`backend/.env`) vive solo en el servidor, con permisos `600`,
 ## 9. Primeros pasos para un programador nuevo
 
 1. Clone el repositorio y trabaje en local siguiendo [`INSTRUCCIONES.md`](../INSTRUCCIONES.md) (base de datos de pruebas, backend, frontend).
-2. Lea `CLAUDE.md`: flujo de ramas (`main` ← `develop` ← `feature/*`, `fix/*`, `docs/*`…) y commits pequeños con Conventional Commits, en inglés.
+2. Respete el flujo de ramas (`main` ← `develop` ← `feature/*`, `fix/*`, `docs/*`…) y haga commits pequeños con Conventional Commits, en inglés.
 3. Cree su llave SSH (sección 2) y pida a un administrador que la autorice solo si necesita entrar al servidor; para desarrollar no hace falta.
 4. Lea [`operacion.md`](operacion.md) antes de tocar producción: respaldos, HTTPS, monitoreo y recuperación del administrador.

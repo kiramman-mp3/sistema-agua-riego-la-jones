@@ -153,7 +153,6 @@ La arquitectura desacopla el cliente web del núcleo del servidor mediante una A
 
 ```bash
 sistema-agua-riego-la-jones/
-├── .claude/                           # Reglas de estilo y directivas para asistentes de IA
 ├── .github/                           # Integración continua (Lint, Test, Build), auditoría semanal de dependencias y Dependabot
 ├── bd/                                # Configuración de Docker para MySQL 8
 │   └── docker-compose.yml             # Orquestación del contenedor de base de datos
@@ -183,7 +182,6 @@ sistema-agua-riego-la-jones/
 ├── docs/                              # Documentación técnica, capturas y guías maestras
 │   └── capturas/                      # Evidencias visuales de los módulos del sistema
 ├── scripts/                           # Automatizaciones de arranque y compilación conjunta
-├── CLAUDE.md                          # Protocolo de Git, convenciones de commit y gobernanza
 └── package.json                       # Scripts globales de desarrollo y producción
 ```
 
@@ -427,7 +425,6 @@ Información recopilada a partir del historial de versiones (`git shortlog -sn`)
 * Guía de presentación y demostración: `docs/GUIA_DE_PRESENTACION.md`
 * Justificación y asistencia continua: `docs/justificacion_y_asistencia_continua.md`
 * Optimización de cargas útiles: `docs/optimizacion_payloads.md`
-* Especificación de gobernanza y Git: `CLAUDE.md`
 
 </details>
 
