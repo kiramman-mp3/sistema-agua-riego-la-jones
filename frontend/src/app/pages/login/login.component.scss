@@ -24,17 +24,10 @@
   margin-bottom: 2rem;
 
   .brand-logo {
-    width: 4rem;
-    height: 4rem;
+    display: block;
+    width: auto;
+    height: 4.5rem;
     margin: 0 auto 1rem;
-    border-radius: var(--radius-full);
-    background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2rem;
-    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
   }
 
   h1 {
