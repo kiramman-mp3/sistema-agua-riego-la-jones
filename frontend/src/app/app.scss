@@ -28,10 +28,12 @@
     font-size: 1.25rem;
     color: var(--color-primary);
     text-decoration: none;
+  }
 
-    i {
-      font-size: 1.5rem;
-    }
+  &__marca {
+    display: block;
+    width: auto;
+    height: 2rem;
   }
 
   &__links {
@@ -221,8 +223,9 @@
     font-weight: 700;
     letter-spacing: -0.02em;
 
-    i {
-      color: var(--color-primary);
+    &__logo {
+      width: auto;
+      height: 1.75rem;
     }
   }
 
@@ -289,10 +292,10 @@
   .main-nav__brand {
     min-width: 0;
     font-size: 1.05rem;
+  }
 
-    i {
-      font-size: 1.25rem;
-    }
+  .main-nav__marca {
+    height: 1.75rem;
   }
 
   .main-nav__actions {
