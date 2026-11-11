@@ -4,12 +4,13 @@ export interface SeccionAviso {
   titulo: string;
   parrafos?: string[];
   lista?: string[];
+  /** Enlace al final de la sección, hacia un apartado del inicio. */
+  enlace?: { texto: string; fragmento: string };
 }
 
 export const AVISO_PRIVACIDAD = {
   titulo: 'Aviso de privacidad y consentimiento',
   responsable: 'Junta de Agua y Riego La Jones',
-  direccion: 'Complejo PROMACERO, Sector La Merced, Patate, Tungurahua',
   actualizado: 'Noviembre de 2026',
   resumen:
     'La Junta guarda los datos de sus socios para administrar el agua de riego: cobros, multas, turnos y asambleas. Aquí le explicamos cuáles son, para qué se usan y cómo puede ejercer sus derechos.',
@@ -18,8 +19,9 @@ export const AVISO_PRIVACIDAD = {
       id: 'responsable',
       titulo: 'Quién es el responsable',
       parrafos: [
-        'El responsable del tratamiento de sus datos es la Junta de Agua y Riego La Jones, con sede en el Complejo PROMACERO, Sector La Merced, cantón Patate, provincia de Tungurahua, Ecuador.',
+        'El responsable del tratamiento de sus datos es la Junta de Agua y Riego La Jones, del cantón Patate, provincia de Tungurahua, Ecuador.',
       ],
+      enlace: { texto: 'Dónde está la sede y cómo contactarnos', fragmento: 'contacto' },
     },
     {
       id: 'datos',
@@ -96,8 +98,9 @@ export const AVISO_PRIVACIDAD = {
       id: 'ejercer',
       titulo: 'Cómo ejercer sus derechos',
       parrafos: [
-        'Acérquese a la secretaría de la Junta en el Complejo PROMACERO, Sector La Merced, y presente su solicitud. Si cree que sus derechos no fueron atendidos, puede acudir a la Superintendencia de Protección de Datos Personales.',
+        'Acérquese a la secretaría de la Junta y presente su solicitud. Si cree que sus derechos no fueron atendidos, puede acudir a la Superintendencia de Protección de Datos Personales.',
       ],
+      enlace: { texto: 'Dirección de la sede y horario de atención', fragmento: 'contacto' },
     },
     {
       id: 'cambios',
