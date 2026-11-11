@@ -460,20 +460,34 @@ test('el portal público lista las asambleas y mingas ya realizadas, con sus doc
   const minga = await eventoPasado({ tipo: 'MINGA', fecha: '2024-05-05', estado: 'REALIZADO' });
   const cancelada = await eventoPasado({ fecha: '2024-06-01', estado: 'CANCELADO' });
   const sinCerrar = await eventoPasado({ fecha: '2024-07-01', estado: 'CONVOCADO' });
+  const borrador = await eventoPasado({ fecha: '2024-08-01', estado: 'BORRADOR' });
+  // Aún no llega su fecha, pero ya tiene el acta firmada: se da por realizada y deja de ser "próxima".
+  const conActa = await eventoPasado({ fecha: enDias(3), estado: 'CONVOCADO' });
+  const proxima = await eventoPasado({ fecha: enDias(4), estado: 'CONVOCADO' });
   await db.query('UPDATE eventos SET descripcion = ? WHERE id = ?', ['Se aprobó el presupuesto anual.', reciente]);
   await db.query(
     `INSERT INTO documentos_evento (evento_id, tipo, estado, ruta_archivo_firmado) VALUES
        (?, 'CONVOCATORIA', 'FIRMADO', '/uploads/documentos/convocatoria_pasada.pdf'),
        (?, 'ACTA', 'FIRMADO', '/uploads/documentos/acta_pasada.pdf'),
-       (?, 'ACTA', 'GENERADO', NULL)`,
-    [reciente, reciente, antigua]
+       (?, 'ACTA', 'GENERADO', NULL),
+       (?, 'ACTA', 'FIRMADO', '/uploads/documentos/acta_anticipada.pdf'),
+       (?, 'ACTA', 'FIRMADO', '/uploads/documentos/acta_borrador.pdf')`,
+    [reciente, reciente, antigua, conActa, borrador]
   );
 
   const res = await request(app).get('/api/eventos/publicos/pasados?tipo=ASAMBLEA&limite=50');
   assert.equal(res.status, 200);
   const ids = res.body.data.map((e) => e.id);
   assert.ok(ids.includes(reciente) && ids.includes(antigua));
-  assert.ok(![minga, cancelada, sinCerrar].some((id) => ids.includes(id)), 'solo asambleas realizadas');
+  assert.ok(![minga, cancelada, borrador, proxima].some((id) => ids.includes(id)), 'ni mingas, ni cancelados, ni borradores, ni próximas');
+  assert.ok(ids.includes(sinCerrar), 'una asamblea anunciada cuya fecha ya pasó cuenta como pasada');
+  assert.ok(ids.includes(conActa), 'con el acta firmada ya cuenta como realizada');
+  assert.equal(res.body.data.find((e) => e.id === conActa).acta_firmada_url, '/uploads/documentos/acta_anticipada.pdf');
+
+  const proximas = await request(app).get('/api/eventos/publicos');
+  const idsProximos = proximas.body.data.map((e) => e.id);
+  assert.ok(idsProximos.includes(proxima), 'la próxima sin acta sigue anunciada');
+  assert.ok(!idsProximos.includes(conActa), 'la que ya tiene acta firmada deja de aparecer como próxima');
   assert.ok(ids.indexOf(reciente) < ids.indexOf(antigua), 'de la más reciente a la más antigua');
   const publicada = res.body.data.find((e) => e.id === reciente);
   assert.equal(publicada.descripcion, 'Se aprobó el presupuesto anual.');

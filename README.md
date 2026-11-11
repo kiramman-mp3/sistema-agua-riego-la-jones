@@ -326,7 +326,7 @@ La lista completa para un VPS (DNS, usuario de MySQL, SSH, HTTPS, primer ingreso
 | `GET` | `/api/lotes` | ADMIN | Catastro de predios y georreferenciación |
 | `GET` | `/api/turnos/semanal` | ADMIN / USUARIO | Consulta de la grilla de turnos de riego por sector |
 | `GET` | `/api/eventos` | ADMIN / USUARIO | Listado de asambleas y mingas comunitarias |
-| `GET` | `/api/eventos/publicos/pasados` | Público | Asambleas o mingas ya realizadas (`tipo`, `pagina`, `limite`), con la convocatoria y el acta firmadas si existen; el archivo del acta exige sesión |
+| `GET` | `/api/eventos/publicos/pasados` | Público | Asambleas o mingas ya realizadas (cerradas, con fecha vencida o con acta firmada; `tipo`, `pagina`, `limite`), con la convocatoria y el acta firmadas si existen; el archivo del acta exige sesión |
 | `POST` | `/api/eventos/:id/asistencia` | ADMIN | Registro masivo de asistencia (presente, ausente, justificado) |
 | `GET` | `/api/finanzas/resumen` | ADMIN | Métricas financieras globales del panel de control |
 | `POST` | `/api/finanzas/cobros` | ADMIN | Registra el pago en caja y emite comprobante en PDF |

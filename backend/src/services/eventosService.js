@@ -348,6 +348,10 @@ async function listarEventos(conexion, { tipo, estado, desde, hasta }) {
   return data;
 }
 
+/** Un evento con el acta firmada ya subida se da por realizado, aunque la directiva no haya cerrado su asistencia. */
+const CON_ACTA_FIRMADA = `EXISTS (SELECT 1 FROM documentos_evento d
+              WHERE d.evento_id = e.id AND d.tipo = 'ACTA' AND d.ruta_archivo_firmado IS NOT NULL)`;
+
 /** Próximos eventos anunciados, sin datos personales. */
 async function listarEventosPublicos(conexion, limite) {
   const [filas] = await conexion.query(
@@ -358,7 +362,7 @@ async function listarEventosPublicos(conexion, limite) {
               WHERE d.evento_id = e.id AND d.tipo = 'CONVOCATORIA' AND d.ruta_archivo_firmado IS NOT NULL LIMIT 1) AS convocatoria_firmada_url
      FROM eventos e
      LEFT JOIN sectores s ON s.id = e.sector_id
-     WHERE e.estado IN ('PROGRAMADO', 'CONVOCADO') AND e.fecha >= ?
+     WHERE e.estado IN ('PROGRAMADO', 'CONVOCADO') AND e.fecha >= ? AND NOT ${CON_ACTA_FIRMADA}
      ORDER BY e.fecha ASC, e.hora_inicio ASC
      LIMIT ?`,
     [hoy(), limite]
@@ -371,11 +375,15 @@ const DOCUMENTO_FIRMADO = (tipo) => `(SELECT d.ruta_archivo_firmado FROM documen
 
 /**
  * Asambleas o mingas ya realizadas, de la más reciente a la más antigua, sin datos personales.
+ * Cuenta como realizado el evento cerrado, el anunciado cuya fecha ya pasó y el que ya tiene su acta
+ * firmada; los borradores y los cancelados no se publican.
  * El acta firmada se devuelve como ruta; el servidor solo la sirve a quien haya iniciado sesión.
  */
 async function listarEventosPasados(conexion, { tipo, pagina, limite }) {
+  const condicion = `e.tipo = ? AND e.estado IN ('PROGRAMADO', 'CONVOCADO', 'REALIZADO')
+     AND (e.estado = 'REALIZADO' OR e.fecha < ? OR ${CON_ACTA_FIRMADA})`;
   const [[{ total }]] = await conexion.query(
-    "SELECT COUNT(*) AS total FROM eventos WHERE estado = 'REALIZADO' AND tipo = ?", [tipo]
+    `SELECT COUNT(*) AS total FROM eventos e WHERE ${condicion}`, [tipo, hoy()]
   );
   const [filas] = await conexion.query(
     `SELECT e.id, e.tipo, e.titulo, e.descripcion, e.fecha, e.hora_inicio, e.hora_fin, e.lugar, e.estado,
@@ -385,10 +393,10 @@ async function listarEventosPasados(conexion, { tipo, pagina, limite }) {
             ${DOCUMENTO_FIRMADO('ACTA')} AS acta_firmada_url
      FROM eventos e
      LEFT JOIN sectores s ON s.id = e.sector_id
-     WHERE e.estado = 'REALIZADO' AND e.tipo = ?
+     WHERE ${condicion}
      ORDER BY e.fecha DESC, e.hora_inicio DESC, e.id DESC
      LIMIT ? OFFSET ?`,
-    [tipo, limite, (pagina - 1) * limite]
+    [tipo, hoy(), limite, (pagina - 1) * limite]
   );
   return { data: filas, total };
 }
