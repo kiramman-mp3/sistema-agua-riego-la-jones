@@ -1,9 +1,9 @@
 /**
- * Contenido de la página "Información de la Junta".
+ * Contenido de la información de la Junta que se muestra en el inicio.
  *
  * Los textos de quiénes somos, órganos de dirección, misión y directiva los proporcionó la Junta.
  * La dirección de la sede la proporcionó la Junta. El horario, el teléfono y el correo siguen
- * pendientes de confirmar. Para actualizar cualquiera basta con editar este archivo; la página no
+ * pendientes de confirmar. Para actualizar cualquiera basta con editar este archivo; la portada no
  * necesita otros cambios.
  */
 import { NOMBRES_DIRECTIVA } from '../../core/utils/directiva';

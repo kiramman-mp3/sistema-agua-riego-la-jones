@@ -42,7 +42,7 @@ test.describe('páginas públicas', () => {
   test.use({ storageState: SIN_SESION });
 
   for (const tema of TEMAS) {
-    for (const ruta of ['/', '/noticias/todas', '/eventos', '/informacion', '/login']) {
+    for (const ruta of ['/', '/noticias/todas', '/eventos', '/login']) {
       test(`${ruta} cumple WCAG AA en tema ${tema}`, async ({ page }) => {
         await revisar(page, ruta, tema);
       });
@@ -50,7 +50,7 @@ test.describe('páginas públicas', () => {
   }
 
   test('cada pantalla tiene un solo <main> y un solo <h1>', async ({ page }) => {
-    for (const ruta of ['/', '/noticias/todas', '/eventos', '/informacion', '/login']) {
+    for (const ruta of ['/', '/noticias/todas', '/eventos', '/login']) {
       await page.goto(ruta);
       await expect(page.locator('h1').first()).toBeVisible();
       await expect(page.locator('main'), ruta).toHaveCount(1);
