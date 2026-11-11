@@ -51,13 +51,20 @@ test('el tablón de eventos lista asambleas con su multa y la convocatoria ofici
   expect(contenido.length).toBeGreaterThan(1000);
 });
 
-test('la página de información muestra quiénes somos, órganos de dirección, misión y sectores', async ({ page }) => {
-  await page.goto('/informacion');
+test('el inicio muestra quiénes somos, la misión, los sectores, la directiva y el contacto', async ({ page }) => {
+  await page.goto('/');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('La Jones');
-  for (const titulo of ['Quiénes somos', 'Órganos de Dirección', 'Nuestra misión', 'Sectores de riego', 'Contacto y atención']) {
+  for (const titulo of ['Quiénes somos', 'Nuestra misión', 'Sectores y Distribución de Agua', 'Órganos de Dirección', 'Contacto y atención']) {
     await expect(page.getByRole('heading', { name: titulo })).toBeVisible();
   }
   await expect(page.getByText(/\d+ lotes/).first()).toBeVisible();
+  await expect(page.getByText('Complejo PROMACERO, Sector La Merced')).toBeVisible();
+});
+
+test('la antigua página de información lleva al inicio y ya no está en el menú', async ({ page }) => {
+  await page.goto('/informacion');
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('link', { name: 'Información de la Junta' })).toHaveCount(0);
 });
 
 test('la navegación principal recorre las páginas públicas', async ({ page }) => {
@@ -65,8 +72,6 @@ test('la navegación principal recorre las páginas públicas', async ({ page })
   const menu = page.getByRole('navigation', { name: 'Navegación principal' });
   await menu.getByRole('link', { name: 'Comunicaciones' }).click();
   await expect(page).toHaveURL(/\/eventos$/);
-  await menu.getByRole('link', { name: 'Información de la Junta' }).click();
-  await expect(page).toHaveURL(/\/informacion$/);
   await menu.getByRole('link', { name: 'Inicio', exact: true }).click();
   await expect(page).toHaveURL(/\/$/);
   await menu.getByRole('link', { name: 'Iniciar Sesión' }).click();
