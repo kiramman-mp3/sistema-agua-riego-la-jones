@@ -348,9 +348,8 @@ async function listarEventos(conexion, { tipo, estado, desde, hasta }) {
   return data;
 }
 
-/** Un evento con el acta firmada ya subida se da por realizado, aunque la directiva no haya cerrado su asistencia. */
-const CON_ACTA_FIRMADA = `EXISTS (SELECT 1 FROM documentos_evento d
-              WHERE d.evento_id = e.id AND d.tipo = 'ACTA' AND d.ruta_archivo_firmado IS NOT NULL)`;
+const DOCUMENTO_FIRMADO = (tipo) => `(SELECT d.ruta_archivo_firmado FROM documentos_evento d
+              WHERE d.evento_id = e.id AND d.tipo = '${tipo}' AND d.ruta_archivo_firmado IS NOT NULL LIMIT 1)`;
 
 /** Próximos eventos anunciados, sin datos personales. */
 async function listarEventosPublicos(conexion, limite) {
@@ -358,11 +357,11 @@ async function listarEventosPublicos(conexion, limite) {
     `SELECT e.id, e.tipo, e.titulo, e.descripcion, e.fecha, e.hora_inicio, e.hora_fin, e.lugar, e.estado,
             e.sector_id, s.nombre AS sector_nombre,
             e.genera_multa_ausencia, e.valor_multa,
-            (SELECT d.ruta_archivo_firmado FROM documentos_evento d
-              WHERE d.evento_id = e.id AND d.tipo = 'CONVOCATORIA' AND d.ruta_archivo_firmado IS NOT NULL LIMIT 1) AS convocatoria_firmada_url
+            ${DOCUMENTO_FIRMADO('CONVOCATORIA')} AS convocatoria_firmada_url,
+            ${DOCUMENTO_FIRMADO('ACTA')} AS acta_firmada_url
      FROM eventos e
      LEFT JOIN sectores s ON s.id = e.sector_id
-     WHERE e.estado IN ('PROGRAMADO', 'CONVOCADO') AND e.fecha >= ? AND NOT ${CON_ACTA_FIRMADA}
+     WHERE e.estado IN ('PROGRAMADO', 'CONVOCADO') AND e.fecha >= ?
      ORDER BY e.fecha ASC, e.hora_inicio ASC
      LIMIT ?`,
     [hoy(), limite]
@@ -370,18 +369,15 @@ async function listarEventosPublicos(conexion, limite) {
   return filas;
 }
 
-const DOCUMENTO_FIRMADO = (tipo) => `(SELECT d.ruta_archivo_firmado FROM documentos_evento d
-              WHERE d.evento_id = e.id AND d.tipo = '${tipo}' AND d.ruta_archivo_firmado IS NOT NULL LIMIT 1)`;
-
 /**
  * Asambleas o mingas ya realizadas, de la más reciente a la más antigua, sin datos personales.
- * Cuenta como realizado el evento cerrado, el anunciado cuya fecha ya pasó y el que ya tiene su acta
- * firmada; los borradores y los cancelados no se publican.
+ * Cuenta como realizado el evento cerrado y el anunciado cuya fecha ya pasó; los borradores y los
+ * cancelados no se publican. Uno con fecha futura sigue siendo próximo, aunque ya tenga el acta firmada.
  * El acta firmada se devuelve como ruta; el servidor solo la sirve a quien haya iniciado sesión.
  */
 async function listarEventosPasados(conexion, { tipo, pagina, limite }) {
   const condicion = `e.tipo = ? AND e.estado IN ('PROGRAMADO', 'CONVOCADO', 'REALIZADO')
-     AND (e.estado = 'REALIZADO' OR e.fecha < ? OR ${CON_ACTA_FIRMADA})`;
+     AND (e.estado = 'REALIZADO' OR e.fecha < ?)`;
   const [[{ total }]] = await conexion.query(
     `SELECT COUNT(*) AS total FROM eventos e WHERE ${condicion}`, [tipo, hoy()]
   );
