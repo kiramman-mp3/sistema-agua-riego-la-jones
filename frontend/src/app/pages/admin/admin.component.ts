@@ -45,7 +45,7 @@ export class AdminComponent {
     },
     {
       ruta: '/admin/asistencias',
-      etiqueta: 'Asistencias',
+      etiqueta: 'Convocatorias',
       corta: 'Eventos',
       icono: 'ri-calendar-check-line',
     },

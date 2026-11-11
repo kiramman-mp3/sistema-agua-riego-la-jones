@@ -56,7 +56,7 @@ test('Actualizar indicadores vuelve a consultar el resumen', async ({ page }) =>
   expect(respuesta.status()).toBe(200);
 });
 
-test('los próximos eventos enlazan con Asistencias', async ({ page }) => {
+test('los próximos eventos enlazan con Convocatorias', async ({ page }) => {
   await page.goto('/admin/dashboard');
   const lista = page.locator('.event-list__item');
   await expect(lista.first()).toBeVisible();
@@ -111,7 +111,7 @@ test.describe('acciones rápidas', () => {
 test.describe('menú del panel', () => {
   const destinos = [
     ['Gestión de Usuarios', /\/admin\/usuarios\/padron/],
-    ['Asistencias', /\/admin\/asistencias\/asambleas/],
+    ['Convocatorias', /\/admin\/asistencias\/asambleas/],
     ['Turnos de agua', /\/admin\/turnos/],
     ['Cobros y pagos', /\/admin\/cobros\/cobrar/],
     ['Tarifas y pago anual', /\/admin\/ajustes\/tarifas/],
