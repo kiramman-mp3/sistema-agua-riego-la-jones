@@ -54,7 +54,7 @@ test.describe('teléfono (390 px)', () => {
     await expect(page).toHaveURL(/\/eventos$/);
   });
 
-  test('el panel de la directiva usa la barra inferior y llega a todos los módulos', async ({ page }) => {
+  test('la gestión usa la barra inferior y llega a todos los módulos', async ({ page }) => {
     await page.goto('/admin/dashboard');
     const barra = page.getByRole('navigation', { name: 'Secciones del panel' });
     await expect(barra).toBeVisible();
