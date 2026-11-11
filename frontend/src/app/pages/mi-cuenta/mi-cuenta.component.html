@@ -50,8 +50,11 @@
               }
             </p>
           </div>
-          @if (ultimoRecibo; as r) {
-            <div class="user-info-actions">
+          <div class="user-info-actions">
+            <a class="btn btn--outline btn--sm pressable" routerLink="/mi-cuenta/lotes">
+              <i class="ri-map-pin-2-line" aria-hidden="true"></i> Ver mis lotes
+            </a>
+            @if (ultimoRecibo; as r) {
               <button
                 type="button"
                 class="btn btn--primary btn--sm pressable"
@@ -73,8 +76,8 @@
                     : 'Imprimir comprobante (' + r.numero + ')'
                 }}
               </button>
-            </div>
-          }
+            }
+          </div>
         </div>
 
         <div class="user-location-info">

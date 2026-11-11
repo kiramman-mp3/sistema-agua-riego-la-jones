@@ -1,0 +1,125 @@
+// Mis lotes: una tarjeta por lote con el mapa a un lado y los turnos de riego al otro.
+
+.mis-lotes {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding-bottom: 5rem;
+
+  &__cabecera {
+    .portal-cabecera__titulo {
+      font-size: clamp(2rem, 1.3rem + 3vw, 3.4rem);
+    }
+  }
+
+  &__volver {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+    color: inherit;
+  }
+}
+
+.skeleton-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.lote {
+  &__cabecera {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  &__titulo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  &__cuerpo {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    gap: 1.5rem clamp(1.5rem, 4vw, 3rem);
+
+    @media (max-width: 799px) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  &__subtitulo {
+    margin: 0 0 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  &__mapa {
+    margin-top: 0.75rem;
+  }
+
+  &__datos {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+    gap: 0.75rem 1.5rem;
+    margin: 1rem 0 0;
+
+    dt {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    dd {
+      margin: 0.1rem 0 0;
+      font-weight: 600;
+    }
+  }
+}
+
+.turnos {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  &__item {
+    display: grid;
+    gap: 0.15rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--primary-color, #0284c7);
+    border-radius: 0.5rem;
+  }
+
+  &__dia {
+    font-size: 1.05rem;
+  }
+
+  &__horario {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__vigencia,
+  &__nota {
+    color: var(--text-muted);
+  }
+}
