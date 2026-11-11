@@ -1,7 +1,7 @@
 <div class="portal">
   <header class="portal-cabecera" id="eventos">
     <app-curvas-nivel />
-    <h1 class="portal-cabecera__titulo">Tablón de Asambleas y Mingas</h1>
+    <h1 class="portal-cabecera__titulo">Asambleas y Mingas</h1>
     <p class="portal-cabecera__lead">
       Consulte los próximos eventos comunitarios programados y descargue su convocatoria.
     </p>
@@ -18,7 +18,7 @@
       [class.active]="tabActivo === 'ASAMBLEA'"
       (click)="setTab('ASAMBLEA')"
     >
-      <i class="ri-user-voice-line" aria-hidden="true"></i> Próximas Asambleas
+      <i class="ri-user-voice-line" aria-hidden="true"></i> Asambleas
     </button>
     <button
       type="button"
@@ -29,7 +29,7 @@
       [class.active]="tabActivo === 'MINGA'"
       (click)="setTab('MINGA')"
     >
-      <i class="ri-tools-line" aria-hidden="true"></i> Próximas Mingas
+      <i class="ri-tools-line" aria-hidden="true"></i> Mingas
     </button>
   </div>
 

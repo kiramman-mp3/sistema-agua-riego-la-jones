@@ -19,7 +19,7 @@ test('el inicio presenta la Junta, el carrusel de noticias y las próximas convo
 
 test('el tablón de eventos lista asambleas con su multa y la convocatoria oficial en PDF', async ({ page }) => {
   await page.goto('/eventos');
-  await expect(page.getByRole('heading', { name: 'Tablón de Asambleas y Mingas' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Asambleas y Mingas' })).toBeVisible();
   await expect(page.getByText(/Multa: \$\d+\.\d{2}/).first()).toBeVisible();
   const boton = page.getByRole('button', { name: /Ver Convocatoria (Oficial|Firmada) \(PDF\)/ }).first();
   await expect(boton).toBeVisible();
