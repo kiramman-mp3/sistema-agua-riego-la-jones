@@ -9,12 +9,8 @@ import { ROLES } from './core/auth/session';
 export const routes: Routes = [
   { path: '', component: InicioComponent },
   { path: 'eventos', component: EventosComponent },
-  {
-    path: 'noticias',
-    title: 'Noticias · Junta La Jones',
-    loadComponent: () =>
-      import('./pages/noticias/noticias.component').then((m) => m.NoticiasComponent),
-  },
+  // Las noticias recientes están en el carrusel de Inicio; /noticias lleva al archivo completo.
+  { path: 'noticias', pathMatch: 'full', redirectTo: 'noticias/todas' },
   // "todas" va antes de ":id" para que no se lea como el identificador de una noticia.
   {
     path: 'noticias/todas',

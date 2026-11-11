@@ -42,7 +42,7 @@ test.describe('páginas públicas', () => {
   test.use({ storageState: SIN_SESION });
 
   for (const tema of TEMAS) {
-    for (const ruta of ['/', '/noticias', '/noticias/todas', '/eventos', '/informacion', '/login']) {
+    for (const ruta of ['/', '/noticias/todas', '/eventos', '/informacion', '/login']) {
       test(`${ruta} cumple WCAG AA en tema ${tema}`, async ({ page }) => {
         await revisar(page, ruta, tema);
       });
@@ -50,7 +50,7 @@ test.describe('páginas públicas', () => {
   }
 
   test('cada pantalla tiene un solo <main> y un solo <h1>', async ({ page }) => {
-    for (const ruta of ['/', '/noticias', '/eventos', '/informacion', '/login']) {
+    for (const ruta of ['/', '/noticias/todas', '/eventos', '/informacion', '/login']) {
       await page.goto(ruta);
       await expect(page.locator('h1').first()).toBeVisible();
       await expect(page.locator('main'), ruta).toHaveCount(1);
@@ -58,15 +58,15 @@ test.describe('páginas públicas', () => {
     }
   });
 
-  test('/noticias no salta niveles de encabezado', async ({ page }) => {
-    await page.goto('/noticias');
+  test('/noticias/todas no salta niveles de encabezado', async ({ page }) => {
+    await page.goto('/noticias/todas');
     await expect(page.locator('h1').first()).toBeVisible();
     const { violations } = await new AxeBuilder({ page }).withRules(['heading-order']).analyze();
     expect(violations.map((v) => v.id)).toEqual([]);
   });
 
   test('el enlace "Saltar al contenido" lleva el foco al contenido sin cambiar la URL', async ({ page }) => {
-    await page.goto('/noticias');
+    await page.goto('/noticias/todas');
     const url = page.url();
     await page.keyboard.press('Tab');
     const salto = page.getByRole('link', { name: 'Saltar al contenido' });

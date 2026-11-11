@@ -1,7 +1,7 @@
 const { test, expect } = require('@playwright/test');
 const { unico, fechaEcuador, aviso, dialogo, fixture } = require('./ayudas');
 
-// Noticias: el público lee la portada (5 recientes), el archivo con filtros y el detalle; la directiva las administra.
+// Noticias: el público lee el carrusel del inicio (5 recientes), el archivo con filtros y el detalle; la directiva las administra.
 test.describe.configure({ mode: 'serial' });
 
 const SIN_SESION = { cookies: [], origins: [] };
@@ -12,25 +12,20 @@ const tarjetas = (page) => page.locator('article.noticia-card');
 test.describe('lectura pública (datos sembrados: 8 noticias)', () => {
   test.use({ storageState: SIN_SESION });
 
-  test('el menú tiene la pestaña Noticias que abre la portada', async ({ page }) => {
+  test('el menú no tiene pestaña Noticias y /noticias lleva al archivo', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('link', { name: 'Noticias' }).click();
-    await expect(page).toHaveURL(new RegExp('/noticias$'));
-    await expect(page.getByRole('heading', { name: 'Noticias', level: 1 })).toBeVisible();
+    await expect(page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('link', { name: 'Noticias' })).toHaveCount(0);
+    await page.goto('/noticias');
+    await expect(page).toHaveURL(new RegExp('/noticias/todas$'));
+    await expect(page.getByRole('heading', { name: 'Todas las noticias', level: 1 })).toBeVisible();
   });
 
-  test('la portada muestra solo las 5 noticias más recientes y un botón para ver más', async ({ page }) => {
-    await page.goto('/noticias');
-    await expect(tarjetas(page)).toHaveCount(5);
-    // La primera es la más reciente (la sembrada hace dos días) y se presenta destacada.
-    await expect(tarjetas(page).first()).toContainText('Minga de limpieza del canal matriz antes del verano');
-    await expect(page.locator('app-noticia-tarjeta.destacada')).toHaveCount(1);
-    await expect(tarjetas(page).first().locator('img')).toBeVisible();
-    await expect(tarjetas(page).first().locator('time')).not.toBeEmpty();
-    await expect(page.getByText('8 noticias publicadas')).toBeVisible();
-
+  test('el carrusel del inicio rota las 5 noticias más recientes y enlaza al archivo', async ({ page }) => {
+    await page.goto('/');
+    const carrusel = page.getByRole('region', { name: 'Últimas noticias' });
+    await expect(carrusel.getByRole('group')).toHaveCount(5);
     // Orden: de la más reciente a la más antigua.
-    const titulos = await tarjetas(page).locator('.noticia-card__titulo').allInnerTexts();
+    const titulos = await carrusel.locator('.carrusel__titulo').allTextContents();
     expect(titulos.map((t) => t.trim())).toEqual([
       'Minga de limpieza del canal matriz antes del verano',
       'Rendición de cuentas: fecha y lugar de la asamblea',
@@ -39,13 +34,22 @@ test.describe('lectura pública (datos sembrados: 8 noticias)', () => {
       'Reparación de la compuerta de El Tambo'
     ]);
 
-    await page.getByRole('link', { name: 'Ver más noticias' }).click();
+    // Se pausa el cambio automático y se navega con los botones.
+    await carrusel.getByRole('button', { name: 'Pausar el cambio automático' }).click();
+    await expect(carrusel.getByRole('button', { name: 'Reanudar el cambio automático' })).toBeVisible();
+    await carrusel.getByRole('button', { name: 'Noticia siguiente' }).click();
+    await expect(carrusel.getByRole('button', { name: 'Ver la noticia 2' })).toHaveAttribute('aria-current', 'true');
+    await expect(carrusel.getByRole('link', { name: 'Rendición de cuentas: fecha y lugar de la asamblea' })).toBeVisible();
+    await carrusel.getByRole('button', { name: 'Noticia anterior' }).click();
+    await expect(carrusel.getByRole('button', { name: 'Ver la noticia 1' })).toHaveAttribute('aria-current', 'true');
+
+    await carrusel.getByRole('link', { name: 'Ver todas las noticias' }).click();
     await expect(page).toHaveURL(new RegExp('/noticias/todas$'));
   });
 
   test('las imágenes de las noticias cargan desde el servidor sin iniciar sesión', async ({ page }) => {
-    await page.goto('/noticias');
-    await expect(tarjetas(page)).toHaveCount(5);
+    await page.goto('/noticias/todas');
+    await expect(tarjetas(page)).toHaveCount(8);
     const cargadas = await page.locator('article.noticia-card img').evaluateAll((imgs) => imgs.map((i) => i.complete && i.naturalWidth > 0));
     expect(cargadas.every(Boolean)).toBe(true);
   });
@@ -205,7 +209,7 @@ test.describe('administración (directiva)', () => {
     await expect(fichas).toHaveCount(1);
   });
 
-  test('una noticia completa se publica y pasa a ser la primera de la portada', async ({ page }) => {
+  test('una noticia completa se publica y pasa a ser la primera del carrusel', async ({ page }) => {
     await page.goto('/admin/noticias');
     await page.getByRole('button', { name: 'Nueva noticia' }).click();
     await page.locator('#noticia-titulo').fill(TITULO);
@@ -226,14 +230,14 @@ test.describe('administración (directiva)', () => {
     await expect(fila).toContainText('prueba');
     await expect(page.locator('tbody tr').first()).toContainText(TITULO);
 
-    // El público la ve primera en la portada; la quinta sembrada sale de la portada.
+    // El público la ve primera en el carrusel; la quinta sembrada sale de él.
     await page.context().clearCookies();
     await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
-    await page.goto('/noticias');
-    await expect(tarjetas(page)).toHaveCount(5);
-    await expect(tarjetas(page).first()).toContainText(TITULO);
-    await expect(page.getByText('Reparación de la compuerta de El Tambo')).toHaveCount(0);
-    await expect(page.getByText('9 noticias publicadas')).toBeVisible();
+    await page.goto('/');
+    const carrusel = page.getByRole('region', { name: 'Últimas noticias' });
+    await expect(carrusel.getByRole('group')).toHaveCount(5);
+    await expect(carrusel.locator('.carrusel__titulo').first()).toContainText(TITULO);
+    await expect(carrusel.getByText('Reparación de la compuerta de El Tambo')).toHaveCount(0);
   });
 });
 

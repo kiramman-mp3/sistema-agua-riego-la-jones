@@ -104,19 +104,6 @@
     overflow-wrap: anywhere;
   }
 
-  &__mas {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    margin-top: 0.5rem;
-    font-weight: 600;
-    color: var(--color-primary);
-
-    i {
-      transition: transform var(--duration) var(--ease-out);
-    }
-  }
-
   &:hover {
     .noticia-card__imagen img {
       transform: scale(1.04);
@@ -125,61 +112,10 @@
     .noticia-card__titulo a {
       color: var(--color-primary);
     }
-
-    .noticia-card__mas i {
-      transform: translateX(4px);
-    }
-  }
-
-  // --- Destacada: imagen amplia y texto grande, sin caja -----------------------------------
-  &--destacada {
-    gap: 1.5rem;
-
-    .noticia-card__titulo {
-      font-size: clamp(1.75rem, 1.2rem + 2.2vw, 2.7rem);
-      line-height: 1.08;
-      letter-spacing: -0.03em;
-    }
-
-    .noticia-card__resumen {
-      -webkit-line-clamp: 4;
-      line-clamp: 4;
-      font-size: 1.12rem;
-    }
-
-    .noticia-card__meta {
-      font-size: 0.95rem;
-    }
-
-    @media (min-width: 900px) {
-      grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
-      align-items: center;
-      gap: 2.5rem;
-
-      .noticia-card__imagen {
-        border-radius: 1.5rem;
-        box-shadow: var(--shadow-md);
-      }
-    }
-  }
-
-  // --- Fila: una noticia del canal ------------------------------------------------------------
-  &--fila {
-    gap: 1.25rem;
-
-    @media (min-width: 720px) {
-      grid-template-columns: minmax(0, 15rem) minmax(0, 1fr);
-      align-items: start;
-    }
-
-    .noticia-card__titulo {
-      font-size: 1.4rem;
-    }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    &__imagen img,
-    &__mas i {
+    &__imagen img {
       transition: none;
     }
 

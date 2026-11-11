@@ -4,11 +4,12 @@ const { descargarPdf } = require('./ayudas');
 // Portal público: lo ve cualquier persona sin iniciar sesión.
 test.use({ storageState: { cookies: [], origins: [] } });
 
-test('el inicio presenta la Junta, sus cifras y las próximas convocatorias', async ({ page }) => {
+test('el inicio presenta la Junta, el carrusel de noticias y las próximas convocatorias', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Gestión del Agua de Riego y Servicios Comunitarios', level: 1 })).toBeVisible();
-  await expect(page.getByText('Usuarios activos')).toBeVisible();
-  await expect(page.getByText('Caudal Total')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Junta de Riego La Jones - Patate', level: 1 })).toBeVisible();
+  const carrusel = page.getByRole('region', { name: 'Últimas noticias' });
+  await expect(carrusel.getByRole('link', { name: 'Minga de limpieza del canal matriz antes del verano' })).toBeVisible();
+  await expect(carrusel.getByRole('link', { name: 'Ver todas las noticias' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Próximas Mingas y Asambleas' })).toBeVisible();
   // Las convocatorias son públicas, pero no exponen datos de personas.
   await expect(page.getByText(/Hora de inicio: \d{2}:\d{2}/).first()).toBeVisible();

@@ -40,7 +40,7 @@ test.describe('teléfono (390 px)', () => {
   test('las páginas públicas no desbordan la pantalla y el menú se abre', async ({ browser }) => {
     const contexto = await browser.newContext({ viewport: VISTA_MOVIL, baseURL: 'http://127.0.0.1:3210', storageState: { cookies: [], origins: [] } });
     const page = await contexto.newPage();
-    for (const ruta of ['/', '/noticias', '/noticias/todas', '/eventos', '/informacion', '/login']) {
+    for (const ruta of ['/', '/noticias/todas', '/eventos', '/informacion', '/login']) {
       await page.goto(ruta);
       const desborde = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
       expect(desborde, `${ruta} desborda horizontalmente`).toBeLessThanOrEqual(1);

@@ -1,4 +1,4 @@
-<!-- PORTADA: el agua del canal, con las cifras de la Junta -->
+<!-- PORTADA: el agua del canal, con las últimas noticias de la Junta -->
 <section class="hero" id="inicio">
   <img
     class="hero__foto"
@@ -10,26 +10,26 @@
   />
   <app-curvas-nivel class="hero__curvas" />
   <div class="portal hero__contenido">
-    <h1 class="hero__titulo">Gestión del Agua de Riego y Servicios Comunitarios</h1>
-    <p class="hero__lead">
-      Plataforma oficial para la administración de los usuarios, turnos de agua, convocatorias a
-      mingas y consulta pública de obligaciones.
-    </p>
+    <div class="hero__cabecera">
+      <div class="hero__texto">
+        <h1 class="hero__titulo">Junta de Riego La Jones - Patate</h1>
+        <p class="hero__lead">
+          Plataforma oficial para la administración de los usuarios, turnos de agua, convocatorias a
+          mingas y consulta pública de obligaciones.
+        </p>
 
-    <dl class="hero__cifras" aria-label="Canal de Riego La Jones">
-      <div>
-        <dt>Usuarios activos</dt>
-        <dd>{{ totalUsuarios || 0 }}</dd>
+        <app-noticias-carrusel />
       </div>
-      <div>
-        <dt>Sectores</dt>
-        <dd>{{ sectores.length || 3 }}</dd>
+
+      <div class="hero__logo">
+        <img
+          src="imagenes/marca-junta-completo.png"
+          width="914"
+          height="914"
+          alt="Junta de Riego La Jones - Patate. El agua que da vida a nuestro campo"
+        />
       </div>
-      <div>
-        <dt>Caudal total</dt>
-        <dd>55.7 <small>L/s</small></dd>
-      </div>
-    </dl>
+    </div>
 
     <div class="hero__consulta">
       <div>

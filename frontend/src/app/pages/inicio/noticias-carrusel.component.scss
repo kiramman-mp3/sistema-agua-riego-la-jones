@@ -1,0 +1,277 @@
+// Carrusel de noticias de la portada: una tarjeta clara sobre la foto, con colores propios para que
+// no dependa del tema ni de la sombra de texto del hero.
+:host {
+  display: block;
+  max-width: 44rem;
+  margin-top: clamp(1.75rem, 4vw, 2.5rem);
+}
+
+@mixin recortar($lineas) {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: $lineas;
+  line-clamp: $lineas;
+}
+
+$azul: #075985;
+$tinta: #0f172a;
+
+.carrusel {
+  overflow: hidden;
+  border-radius: 1.25rem;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  color: $tinta;
+  text-shadow: none;
+
+  &__ventana {
+    overflow: hidden;
+  }
+
+  &__pista {
+    display: flex;
+    transition: transform 0.5s ease;
+
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+    }
+  }
+
+  // Todas las noticias miden lo mismo para que la tarjeta no cambie de alto al rotar.
+  &__noticia {
+    position: relative; // ancla del enlace que cubre toda la noticia
+    display: grid;
+    flex: 0 0 100%;
+    grid-template-columns: minmax(0, 14rem) minmax(0, 1fr);
+    height: 16rem;
+    min-width: 0;
+
+    @media (max-width: 599px) {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: 10rem auto;
+      height: auto; // el texto manda; la pista iguala el alto de todas las noticias
+    }
+  }
+
+  // La imagen se ve entera (los carteles no se recortan); a los lados, ella misma desenfocada.
+  &__imagen {
+    position: relative;
+    overflow: hidden;
+    background: #cbd5e1;
+
+    &::before {
+      content: '';
+      position: absolute;
+      inset: -1rem;
+      background: var(--imagen) center / cover;
+      filter: blur(14px) brightness(0.9);
+    }
+
+    img {
+      position: relative;
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+  }
+
+  &__cuerpo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 0;
+    padding: 1.15rem 1.35rem 1.1rem;
+  }
+
+  &__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.6rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: #475569;
+  }
+
+  &__tag {
+    padding: 0.12rem 0.55rem;
+    border-radius: 999px;
+    background: #e0f2fe;
+    font-size: 0.72rem;
+    letter-spacing: 0.02em;
+    text-transform: none;
+    color: $azul;
+  }
+
+  &__titulo {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    @include recortar(2);
+
+    a {
+      color: $tinta;
+      text-decoration: none;
+
+      // Toda la noticia es un solo enlace: el título lo extiende sobre la tarjeta.
+      &::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+      }
+    }
+  }
+
+  .carrusel__noticia:hover .carrusel__titulo a {
+    color: $azul;
+  }
+
+  &__resumen {
+    margin: 0;
+    font-size: 0.95rem;
+    line-height: 1.45;
+    color: #334155;
+    @include recortar(3);
+  }
+
+  &__leer {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: auto;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: $azul;
+
+    i {
+      transition: transform 0.2s ease;
+    }
+  }
+
+  .carrusel__noticia:hover .carrusel__leer i {
+    transform: translateX(4px);
+  }
+
+  &__barra {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem 1rem;
+    padding: 0.65rem 1rem;
+    border-top: 1px solid #e2e8f0;
+    background: #f8fafc;
+  }
+
+  &__controles {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  &__boton {
+    display: inline-grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    padding: 0;
+    border: 1px solid #cbd5e1;
+    border-radius: 50%;
+    background: #fff;
+    font-size: 1.15rem;
+    color: $azul;
+    cursor: pointer;
+    transition: background 0.15s ease;
+
+    &:hover {
+      background: #e0f2fe;
+    }
+  }
+
+  &__puntos {
+    display: flex;
+    gap: 0.15rem;
+    margin: 0 0 0 0.5rem;
+    padding: 0;
+    list-style: none;
+  }
+
+  // El botón mide 24 px para que sea cómodo de tocar; el punto visible es el ::before.
+  &__punto {
+    position: relative;
+    width: 1.5rem;
+    height: 1.5rem;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      margin: auto;
+      width: 0.6rem;
+      height: 0.6rem;
+      border-radius: 50%;
+      background: #94a3b8;
+      transition:
+        width 0.2s ease,
+        background 0.2s ease;
+    }
+
+    &--activo::before {
+      width: 1.4rem;
+      border-radius: 0.3rem;
+      background: $azul;
+    }
+  }
+
+  &__todas {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.45rem 0.95rem;
+    border-radius: 999px;
+    background: $azul;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #fff;
+    text-decoration: none;
+    transition: background 0.15s ease;
+
+    &:hover {
+      background: #0c4a6e;
+    }
+  }
+
+  a:focus-visible,
+  button:focus-visible {
+    outline: 3px solid #0284c7;
+    outline-offset: 2px;
+  }
+
+  // El enlace cubre toda la noticia: el foco se dibuja sobre ella, no solo sobre el texto.
+  &__titulo a:focus-visible {
+    outline: none;
+
+    &::after {
+      outline: 3px solid #0284c7;
+      outline-offset: -3px;
+      border-radius: 1.25rem 0 0 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &__leer i {
+      transition: none;
+    }
+  }
+}
