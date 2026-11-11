@@ -42,7 +42,7 @@ test('la página de información muestra quiénes somos, órganos de dirección,
 test('la navegación principal recorre las páginas públicas', async ({ page }) => {
   await page.goto('/');
   const menu = page.getByRole('navigation', { name: 'Navegación principal' });
-  await menu.getByRole('link', { name: 'Eventos y Actas' }).click();
+  await menu.getByRole('link', { name: 'Comunicaciones' }).click();
   await expect(page).toHaveURL(/\/eventos$/);
   await menu.getByRole('link', { name: 'Información de la Junta' }).click();
   await expect(page).toHaveURL(/\/informacion$/);
