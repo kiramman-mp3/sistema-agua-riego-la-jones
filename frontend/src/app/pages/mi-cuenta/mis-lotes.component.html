@@ -1,0 +1,125 @@
+<div class="portal mis-lotes">
+  <header class="portal-cabecera mis-lotes__cabecera">
+    <app-curvas-nivel />
+    <a class="mis-lotes__volver" routerLink="/mi-cuenta">
+      <i class="ri-arrow-left-line" aria-hidden="true"></i> Volver a mi cuenta
+    </a>
+    <h1 class="portal-cabecera__titulo">Mis lotes</h1>
+    @if (!cargando && !errorMensaje) {
+      <p class="portal-cabecera__lead">
+        {{ lotes.length === 1 ? '1 lote' : lotes.length + ' lotes' }} y
+        {{
+          totalTurnos === 1
+            ? '1 turno de riego asignado'
+            : totalTurnos + ' turnos de riego asignados'
+        }}.
+      </p>
+    }
+  </header>
+
+  @if (cargando) {
+    <div class="skeleton-wrapper" aria-live="polite" aria-busy="true">
+      <span class="sr-only">Cargando sus lotes...</span>
+      <div class="skeleton skeleton--card"></div>
+      <div class="skeleton skeleton--card"></div>
+    </div>
+  }
+
+  @if (!cargando && errorMensaje) {
+    <div class="card error-card" role="alert">
+      <i class="ri-error-warning-fill error-icon" aria-hidden="true"></i>
+      <h3>Información no disponible</h3>
+      <p>{{ errorMensaje }}</p>
+      <button type="button" class="btn btn--primary" (click)="cargar()">
+        <i class="ri-refresh-line" aria-hidden="true"></i> Reintentar
+      </button>
+    </div>
+  }
+
+  @if (!cargando && !errorMensaje) {
+    @for (item of lotes; track item.lote.id) {
+      <article class="card lote" [attr.aria-labelledby]="'lote-' + item.lote.id">
+        <header class="lote__cabecera">
+          <h2 class="lote__titulo" [id]="'lote-' + item.lote.id">
+            <i class="ri-map-pin-2-line" aria-hidden="true"></i> Lote {{ item.lote.codigo }}
+          </h2>
+          <span class="badge badge--info">{{ item.lote.sector_nombre }}</span>
+        </header>
+
+        <div class="lote__cuerpo">
+          <section class="lote__bloque" aria-label="Ubicación">
+            <h3 class="lote__subtitulo">Ubicación</h3>
+            @if (item.latitud !== null && item.longitud !== null) {
+              <app-lotes-map
+                [latitud]="item.latitud"
+                [longitud]="item.longitud"
+                [radioError]="item.lote.radio_error_m || 5"
+                [alto]="220"
+              />
+              <a
+                class="btn btn--outline btn--sm lote__mapa"
+                [href]="urlGoogleMaps(item)"
+                target="_blank"
+                rel="noopener"
+              >
+                <i class="ri-external-link-line" aria-hidden="true"></i> Ver en Google Maps
+              </a>
+            } @else {
+              <p class="text-muted">Este lote aún no tiene ubicación en el mapa.</p>
+            }
+            <dl class="lote__datos">
+              <div>
+                <dt>Superficie</dt>
+                <dd>
+                  {{ item.lote.superficie_m2 ? item.lote.superficie_m2 + ' m²' : 'No registrada' }}
+                </dd>
+              </div>
+              <div>
+                <dt>Referencia</dt>
+                <dd>{{ item.lote.referencia_ubicacion || 'Sin referencia' }}</dd>
+              </div>
+            </dl>
+          </section>
+
+          <section class="lote__bloque" aria-label="Turnos de riego">
+            <h3 class="lote__subtitulo">Turnos de riego</h3>
+            @if (item.turnos.length) {
+              <ul class="turnos">
+                @for (t of item.turnos; track t.id) {
+                  <li class="turnos__item">
+                    <strong class="turnos__dia">{{ t.dia }}</strong>
+                    <span class="turnos__horario"
+                      ><i class="ri-time-line" aria-hidden="true"></i> {{ t.horario }}</span
+                    >
+                    @if (t.vigenciaDesde || t.vigenciaHasta) {
+                      <small class="turnos__vigencia">
+                        Vigente
+                        @if (t.vigenciaDesde) {
+                          desde {{ t.vigenciaDesde | fechaLocal }}
+                        }
+                        @if (t.vigenciaHasta) {
+                          hasta {{ t.vigenciaHasta | fechaLocal }}
+                        }
+                      </small>
+                    }
+                    @if (t.observacion) {
+                      <small class="turnos__nota">{{ t.observacion }}</small>
+                    }
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="text-muted">Este lote no tiene turnos de riego asignados.</p>
+            }
+          </section>
+        </div>
+      </article>
+    } @empty {
+      <div class="card success-empty-card">
+        <i class="ri-map-pin-line success-icon" aria-hidden="true"></i>
+        <h3>No tiene lotes registrados</h3>
+        <p>Si cree que es un error, consulte en la secretaría de la Junta.</p>
+      </div>
+    }
+  }
+</div>
