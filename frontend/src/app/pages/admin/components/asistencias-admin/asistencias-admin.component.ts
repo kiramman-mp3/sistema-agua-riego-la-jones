@@ -4,7 +4,7 @@ import { PageHeaderComponent } from '../../../../shared/ui/page-header.component
 import { SectionNavComponent, SeccionNav } from '../../../../shared/ui/section-nav.component';
 
 /**
- * Módulo de Asistencias. Asambleas y mingas son flujos de negocio distintos
+ * Módulo de Convocatorias. Asambleas y mingas son flujos de negocio distintos
  * (actas y multas vs. jornadas de trabajo), así que cada uno es una ruta hija con su propio componente.
  */
 @Component({
