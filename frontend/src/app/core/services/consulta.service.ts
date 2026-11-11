@@ -80,7 +80,7 @@ export interface EventoDetalleResponse {
 
 import { DocumentosService, DocumentoSubido, TipoDocumento } from './documentos.service';
 import { environment } from '../../../environments/environment';
-import { EventoItem, RespuestaApi } from '../models/api-payloads';
+import { EventoItem, LoteItem, RespuestaApi, TurnoItem } from '../models/api-payloads';
 
 @Injectable({
   providedIn: 'root',
@@ -107,6 +107,20 @@ export class ConsultaService {
   ): Observable<PaginaEventosPasados> {
     return this.http.get<PaginaEventosPasados>(`${this.apiUrl}/eventos/publicos/pasados`, {
       params: { tipo, pagina, limite },
+    });
+  }
+
+  /** Lotes de la persona. El servidor solo entrega los propios a un usuario; la directiva pasa su persona. */
+  getMisLotes(personaId: number): Observable<RespuestaApi<LoteItem[]>> {
+    return this.http.get<RespuestaApi<LoteItem[]>>(`${this.apiUrl}/lotes`, {
+      params: { persona_id: personaId },
+    });
+  }
+
+  /** Turnos de riego activos asignados a los lotes de la persona. */
+  getMisTurnos(personaId: number): Observable<RespuestaApi<TurnoItem[]>> {
+    return this.http.get<RespuestaApi<TurnoItem[]>>(`${this.apiUrl}/turnos`, {
+      params: { persona_id: personaId },
     });
   }
 
