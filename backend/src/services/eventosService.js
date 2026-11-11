@@ -366,6 +366,33 @@ async function listarEventosPublicos(conexion, limite) {
   return filas;
 }
 
+const DOCUMENTO_FIRMADO = (tipo) => `(SELECT d.ruta_archivo_firmado FROM documentos_evento d
+              WHERE d.evento_id = e.id AND d.tipo = '${tipo}' AND d.ruta_archivo_firmado IS NOT NULL LIMIT 1)`;
+
+/**
+ * Asambleas o mingas ya realizadas, de la más reciente a la más antigua, sin datos personales.
+ * El acta firmada se devuelve como ruta; el servidor solo la sirve a quien haya iniciado sesión.
+ */
+async function listarEventosPasados(conexion, { tipo, pagina, limite }) {
+  const [[{ total }]] = await conexion.query(
+    "SELECT COUNT(*) AS total FROM eventos WHERE estado = 'REALIZADO' AND tipo = ?", [tipo]
+  );
+  const [filas] = await conexion.query(
+    `SELECT e.id, e.tipo, e.titulo, e.descripcion, e.fecha, e.hora_inicio, e.hora_fin, e.lugar, e.estado,
+            e.sector_id, s.nombre AS sector_nombre,
+            e.genera_multa_ausencia, e.valor_multa,
+            ${DOCUMENTO_FIRMADO('CONVOCATORIA')} AS convocatoria_firmada_url,
+            ${DOCUMENTO_FIRMADO('ACTA')} AS acta_firmada_url
+     FROM eventos e
+     LEFT JOIN sectores s ON s.id = e.sector_id
+     WHERE e.estado = 'REALIZADO' AND e.tipo = ?
+     ORDER BY e.fecha DESC, e.hora_inicio DESC, e.id DESC
+     LIMIT ? OFFSET ?`,
+    [tipo, limite, (pagina - 1) * limite]
+  );
+  return { data: filas, total };
+}
+
 /** Detalle de un evento con sus puntos y el resumen de asistencia por estado. */
 async function detalleEvento(conexion, id) {
   const [filas] = await conexion.query(
@@ -603,7 +630,7 @@ async function eliminarJustificante(conexion, evento, personaId) {
 }
 
 module.exports = {
-  listarEventos, listarEventosPublicos, detalleEvento, crearEvento, actualizarEvento, guardarPuntos,
+  listarEventos, listarEventosPublicos, listarEventosPasados, detalleEvento, crearEvento, actualizarEvento, guardarPuntos,
   ESTADOS_ASISTENCIA, obtenerEvento, obtenerPadron, cambiarEstado, registrarAsistencias, finalizar, exigirAbierto,
   guardarJustificante, eliminarJustificante
 };

@@ -11,6 +11,12 @@ const listarSchema = z.object({
   hasta: fecha.optional()
 });
 
+const pasadosSchema = z.object({
+  tipo: z.enum(TIPOS, { error: 'El tipo debe ser ASAMBLEA o MINGA.' }),
+  pagina: z.coerce.number().int().min(1).default(1),
+  limite: z.coerce.number().int().min(1).max(50).default(10)
+});
+
 const crearSchema = z.object({
   tipo: z.enum(TIPOS, { error: 'El tipo debe ser ASAMBLEA o MINGA.' }),
   titulo: z.string().trim().min(3, 'El título debe tener al menos 3 caracteres.').max(200),
@@ -69,4 +75,4 @@ const cambioEstadoSchema = z.object({
   })
 });
 
-module.exports = { TIPOS, ESTADOS, listarSchema, crearSchema, actualizarSchema, puntosSchema, documentoSchema, cambioEstadoSchema };
+module.exports = { TIPOS, ESTADOS, listarSchema, pasadosSchema, crearSchema, actualizarSchema, puntosSchema, documentoSchema, cambioEstadoSchema };

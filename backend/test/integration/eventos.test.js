@@ -453,3 +453,50 @@ test('edita un evento antes de finalizar con validación horaria y bloqueo si ya
   assert.equal(resCancelado.status, 409);
 });
 
+
+test('el portal público lista las asambleas y mingas ya realizadas, con sus documentos firmados', async () => {
+  const antigua = await eventoPasado({ fecha: '2024-03-02', estado: 'REALIZADO' });
+  const reciente = await eventoPasado({ fecha: '2024-09-14', estado: 'REALIZADO' });
+  const minga = await eventoPasado({ tipo: 'MINGA', fecha: '2024-05-05', estado: 'REALIZADO' });
+  const cancelada = await eventoPasado({ fecha: '2024-06-01', estado: 'CANCELADO' });
+  const sinCerrar = await eventoPasado({ fecha: '2024-07-01', estado: 'CONVOCADO' });
+  await db.query('UPDATE eventos SET descripcion = ? WHERE id = ?', ['Se aprobó el presupuesto anual.', reciente]);
+  await db.query(
+    `INSERT INTO documentos_evento (evento_id, tipo, estado, ruta_archivo_firmado) VALUES
+       (?, 'CONVOCATORIA', 'FIRMADO', '/uploads/documentos/convocatoria_pasada.pdf'),
+       (?, 'ACTA', 'FIRMADO', '/uploads/documentos/acta_pasada.pdf'),
+       (?, 'ACTA', 'GENERADO', NULL)`,
+    [reciente, reciente, antigua]
+  );
+
+  const res = await request(app).get('/api/eventos/publicos/pasados?tipo=ASAMBLEA&limite=50');
+  assert.equal(res.status, 200);
+  const ids = res.body.data.map((e) => e.id);
+  assert.ok(ids.includes(reciente) && ids.includes(antigua));
+  assert.ok(![minga, cancelada, sinCerrar].some((id) => ids.includes(id)), 'solo asambleas realizadas');
+  assert.ok(ids.indexOf(reciente) < ids.indexOf(antigua), 'de la más reciente a la más antigua');
+  const publicada = res.body.data.find((e) => e.id === reciente);
+  assert.equal(publicada.descripcion, 'Se aprobó el presupuesto anual.');
+  assert.equal(publicada.convocatoria_firmada_url, '/uploads/documentos/convocatoria_pasada.pdf');
+  assert.equal(publicada.acta_firmada_url, '/uploads/documentos/acta_pasada.pdf');
+  // Un acta que aún no se firmó no se anuncia.
+  assert.equal(res.body.data.find((e) => e.id === antigua).acta_firmada_url, null);
+
+  const mingas = await request(app).get('/api/eventos/publicos/pasados?tipo=MINGA&limite=50');
+  assert.ok(mingas.body.data.some((e) => e.id === minga));
+  assert.ok(mingas.body.data.every((e) => e.tipo === 'MINGA'));
+
+  // Paginación: cada página trae su parte y el total no cambia.
+  const primera = await request(app).get('/api/eventos/publicos/pasados?tipo=ASAMBLEA&limite=1&pagina=1');
+  const segunda = await request(app).get('/api/eventos/publicos/pasados?tipo=ASAMBLEA&limite=1&pagina=2');
+  assert.equal(primera.body.data.length, 1);
+  assert.equal(segunda.body.data.length, 1);
+  assert.notEqual(primera.body.data[0].id, segunda.body.data[0].id);
+  assert.equal(primera.body.total, res.body.total);
+
+  assert.equal((await request(app).get('/api/eventos/publicos/pasados')).status, 400, 'el tipo es obligatorio');
+  assert.equal((await request(app).get('/api/eventos/publicos/pasados?tipo=OTRO')).status, 400);
+  assert.equal((await request(app).get('/api/eventos/publicos/pasados?tipo=MINGA&limite=500')).status, 400);
+  // El acta se pide con sesión: la ruta se anuncia, pero el archivo no se sirve sin ella.
+  assert.equal((await request(app).get('/uploads/documentos/acta_pasada.pdf')).status, 401);
+});

@@ -13,7 +13,7 @@ const { badRequest, notFound } = require('../shared/errors');
 const { idParam } = require('../shared/schemas');
 const { z } = require('zod');
 const {
-  listarSchema, crearSchema, actualizarSchema, puntosSchema, documentoSchema, cambioEstadoSchema
+  listarSchema, pasadosSchema, crearSchema, actualizarSchema, puntosSchema, documentoSchema, cambioEstadoSchema
 } = require('../schemas/eventos');
 
 const eventoPersonaParam = z.object({
@@ -37,6 +37,13 @@ async function getEventosPublicos(req, res) {
   const limite = Math.min(Math.max(Number.parseInt(req.query.limite, 10) || 20, 1), 50);
   const filas = await eventos.listarEventosPublicos(db, limite);
   return res.json({ status: 'OK', data: filas });
+}
+
+/** Asambleas o mingas ya realizadas, paginadas (portal público, sin datos personales). */
+async function getEventosPasados(req, res) {
+  const consulta = pasadosSchema.parse(req.query);
+  const { data, total } = await eventos.listarEventosPasados(db, consulta);
+  return res.json({ status: 'OK', data, total, pagina: consulta.pagina, limite: consulta.limite });
 }
 
 /** Detalle de un evento con sus puntos (actas) y el resumen de asistencia. */
@@ -303,6 +310,7 @@ async function eliminarDocumentoEvento(req, res) {
 module.exports = {
   getEventos,
   getEventosPublicos,
+  getEventosPasados,
   getEventoById,
   createEvento,
   updateEvento,
