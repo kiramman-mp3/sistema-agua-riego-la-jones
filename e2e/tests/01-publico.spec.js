@@ -17,6 +17,27 @@ test('el inicio presenta la Junta, el carrusel de noticias y las próximas convo
   await expect(page.locator('body')).not.toContainText(/\b\d{10}\b/);
 });
 
+test('el tablón permite ver las asambleas y mingas pasadas', async ({ page }) => {
+  await page.goto('/eventos');
+  await page.getByRole('button', { name: 'Ver asambleas pasadas' }).click();
+  await expect(page.getByRole('heading', { name: 'Asambleas pasadas' })).toBeVisible();
+  const asambleas = page.locator('.pasado');
+  await expect(asambleas.first()).toContainText(/\d{4}/);
+  await expect(asambleas.first().getByRole('button', { name: /Ver Convocatoria/ })).toBeVisible();
+  // Sin sesión no se abre el acta: solo se avisa si ya está firmada o aún no.
+  await expect(asambleas.first().getByRole('button', { name: 'Ver Acta Firmada' })).toHaveCount(0);
+
+  await page.getByRole('tab', { name: 'Mingas' }).click();
+  await page.getByRole('button', { name: 'Ver mingas pasadas' }).click();
+  await expect(page.getByRole('heading', { name: 'Mingas pasadas' })).toBeVisible();
+  await expect(page.locator('.pasado').first()).toBeVisible();
+  // Las mingas pasadas muestran título, fecha y resumen, sin documentos.
+  await expect(page.locator('.pasado').getByRole('button')).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Ocultar mingas pasadas' }).click();
+  await expect(page.locator('.pasado')).toHaveCount(0);
+});
+
 test('el tablón de eventos lista asambleas con su multa y la convocatoria oficial en PDF', async ({ page }) => {
   await page.goto('/eventos');
   await expect(page.getByRole('heading', { name: 'Asambleas y Mingas' })).toBeVisible();

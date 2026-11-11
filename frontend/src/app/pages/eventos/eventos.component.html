@@ -97,5 +97,130 @@
         mensaje="Cuando la directiva convoque una, aparecerá aquí."
       />
     }
+
+    <!-- PASADAS: se abren a pedido, de la más reciente a la más antigua -->
+    <section class="pasados" aria-labelledby="pasados-titulo">
+      <button
+        type="button"
+        class="btn btn--outline pasados__boton"
+        [attr.aria-expanded]="pasadosActivos.visible"
+        aria-controls="pasados-lista"
+        (click)="alternarPasados()"
+      >
+        <i class="ri-history-line" aria-hidden="true"></i>
+        {{
+          pasadosActivos.visible
+            ? tabActivo === 'ASAMBLEA'
+              ? 'Ocultar asambleas pasadas'
+              : 'Ocultar mingas pasadas'
+            : tabActivo === 'ASAMBLEA'
+              ? 'Ver asambleas pasadas'
+              : 'Ver mingas pasadas'
+        }}
+      </button>
+
+      @if (pasadosActivos.visible) {
+        <div id="pasados-lista" class="pasados__contenido">
+          <h2 id="pasados-titulo" class="portal-subtitulo">
+            {{ tabActivo === 'ASAMBLEA' ? 'Asambleas pasadas' : 'Mingas pasadas' }}
+          </h2>
+
+          @if (pasadosActivos.items.length) {
+            <ul class="pasados__lista">
+              @for (item of pasadosActivos.items; track item.id) {
+                <li class="pasado">
+                  <article>
+                    <div class="pasado__cabecera">
+                      <h3 class="pasado__titulo">{{ item.titulo }}</h3>
+                      <time class="pasado__fecha" [attr.datetime]="item.fecha">{{
+                        item.fecha | fechaLocal: 'larga'
+                      }}</time>
+                    </div>
+                    @if (item.lugar) {
+                      <p class="pasado__lugar">
+                        <i class="ri-map-pin-2-line" aria-hidden="true"></i> {{ item.lugar }}
+                      </p>
+                    }
+                    @if (item.descripcion) {
+                      <p class="pasado__resumen">{{ item.descripcion }}</p>
+                    }
+                    @if (item.tipo === 'ASAMBLEA') {
+                      <div class="pasado__acciones">
+                        <button
+                          type="button"
+                          class="btn btn--outline btn--sm"
+                          (click)="descargarConvocatoria(item)"
+                        >
+                          <i class="ri-file-pdf-2-line" aria-hidden="true"></i>
+                          {{
+                            item.convocatoria_firmada_url
+                              ? 'Ver Convocatoria Firmada (PDF)'
+                              : 'Ver Convocatoria (PDF)'
+                          }}
+                        </button>
+                        @if (item.acta_firmada_url) {
+                          @if (auth.isLoggedIn()) {
+                            <button
+                              type="button"
+                              class="btn btn--primary btn--sm"
+                              (click)="verActa(item)"
+                            >
+                              <i class="ri-article-line" aria-hidden="true"></i> Ver Acta Firmada
+                            </button>
+                          } @else {
+                            <a routerLink="/login" class="pasado__acta-login">
+                              <i class="ri-lock-line" aria-hidden="true"></i> Inicie sesión para ver
+                              el acta firmada
+                            </a>
+                          }
+                        } @else {
+                          <span class="pasado__acta-pendiente">Acta firmada aún no publicada</span>
+                        }
+                      </div>
+                    }
+                  </article>
+                </li>
+              }
+            </ul>
+
+            @if (pasadosActivos.items.length < pasadosActivos.total) {
+              <button
+                type="button"
+                class="btn btn--outline btn--sm pasados__mas"
+                [disabled]="pasadosActivos.cargando"
+                (click)="cargarPasados()"
+              >
+                {{ pasadosActivos.cargando ? 'Cargando…' : 'Cargar más' }}
+              </button>
+            }
+          } @else if (pasadosActivos.cargando) {
+            <p class="pasados__estado" role="status">Cargando…</p>
+          } @else if (!pasadosActivos.error) {
+            <app-empty-state
+              icono="ri-history-line"
+              [titulo]="
+                tabActivo === 'ASAMBLEA'
+                  ? 'Aún no hay asambleas pasadas.'
+                  : 'Aún no hay mingas pasadas.'
+              "
+              mensaje="Las que se realicen aparecerán aquí."
+            />
+          }
+
+          @if (pasadosActivos.error) {
+            <app-empty-state
+              tono="error"
+              icono="ri-wifi-off-line"
+              titulo="No se pudieron cargar"
+              mensaje="Revise su conexión e intente de nuevo."
+            >
+              <button type="button" class="btn btn--outline btn--sm" (click)="cargarPasados()">
+                Reintentar
+              </button>
+            </app-empty-state>
+          }
+        </div>
+      }
+    </section>
   </div>
 </div>
