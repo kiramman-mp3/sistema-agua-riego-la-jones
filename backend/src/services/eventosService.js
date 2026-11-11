@@ -348,14 +348,17 @@ async function listarEventos(conexion, { tipo, estado, desde, hasta }) {
   return data;
 }
 
+const DOCUMENTO_FIRMADO = (tipo) => `(SELECT d.ruta_archivo_firmado FROM documentos_evento d
+              WHERE d.evento_id = e.id AND d.tipo = '${tipo}' AND d.ruta_archivo_firmado IS NOT NULL LIMIT 1)`;
+
 /** Próximos eventos anunciados, sin datos personales. */
 async function listarEventosPublicos(conexion, limite) {
   const [filas] = await conexion.query(
     `SELECT e.id, e.tipo, e.titulo, e.descripcion, e.fecha, e.hora_inicio, e.hora_fin, e.lugar, e.estado,
             e.sector_id, s.nombre AS sector_nombre,
             e.genera_multa_ausencia, e.valor_multa,
-            (SELECT d.ruta_archivo_firmado FROM documentos_evento d
-              WHERE d.evento_id = e.id AND d.tipo = 'CONVOCATORIA' AND d.ruta_archivo_firmado IS NOT NULL LIMIT 1) AS convocatoria_firmada_url
+            ${DOCUMENTO_FIRMADO('CONVOCATORIA')} AS convocatoria_firmada_url,
+            ${DOCUMENTO_FIRMADO('ACTA')} AS acta_firmada_url
      FROM eventos e
      LEFT JOIN sectores s ON s.id = e.sector_id
      WHERE e.estado IN ('PROGRAMADO', 'CONVOCADO') AND e.fecha >= ?
@@ -364,6 +367,34 @@ async function listarEventosPublicos(conexion, limite) {
     [hoy(), limite]
   );
   return filas;
+}
+
+/**
+ * Asambleas o mingas ya realizadas, de la más reciente a la más antigua, sin datos personales.
+ * Cuenta como realizado el evento cerrado y el anunciado cuya fecha ya pasó; los borradores y los
+ * cancelados no se publican. Uno con fecha futura sigue siendo próximo, aunque ya tenga el acta firmada.
+ * El acta firmada se devuelve como ruta; el servidor solo la sirve a quien haya iniciado sesión.
+ */
+async function listarEventosPasados(conexion, { tipo, pagina, limite }) {
+  const condicion = `e.tipo = ? AND e.estado IN ('PROGRAMADO', 'CONVOCADO', 'REALIZADO')
+     AND (e.estado = 'REALIZADO' OR e.fecha < ?)`;
+  const [[{ total }]] = await conexion.query(
+    `SELECT COUNT(*) AS total FROM eventos e WHERE ${condicion}`, [tipo, hoy()]
+  );
+  const [filas] = await conexion.query(
+    `SELECT e.id, e.tipo, e.titulo, e.descripcion, e.fecha, e.hora_inicio, e.hora_fin, e.lugar, e.estado,
+            e.sector_id, s.nombre AS sector_nombre,
+            e.genera_multa_ausencia, e.valor_multa,
+            ${DOCUMENTO_FIRMADO('CONVOCATORIA')} AS convocatoria_firmada_url,
+            ${DOCUMENTO_FIRMADO('ACTA')} AS acta_firmada_url
+     FROM eventos e
+     LEFT JOIN sectores s ON s.id = e.sector_id
+     WHERE ${condicion}
+     ORDER BY e.fecha DESC, e.hora_inicio DESC, e.id DESC
+     LIMIT ? OFFSET ?`,
+    [tipo, hoy(), limite, (pagina - 1) * limite]
+  );
+  return { data: filas, total };
 }
 
 /** Detalle de un evento con sus puntos y el resumen de asistencia por estado. */
@@ -603,7 +634,7 @@ async function eliminarJustificante(conexion, evento, personaId) {
 }
 
 module.exports = {
-  listarEventos, listarEventosPublicos, detalleEvento, crearEvento, actualizarEvento, guardarPuntos,
+  listarEventos, listarEventosPublicos, listarEventosPasados, detalleEvento, crearEvento, actualizarEvento, guardarPuntos,
   ESTADOS_ASISTENCIA, obtenerEvento, obtenerPadron, cambiarEstado, registrarAsistencias, finalizar, exigirAbierto,
   guardarJustificante, eliminarJustificante
 };

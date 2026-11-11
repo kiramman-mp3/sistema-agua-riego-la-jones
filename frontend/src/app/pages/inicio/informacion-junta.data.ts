@@ -1,9 +1,9 @@
 /**
- * Contenido de la página "Información de la Junta".
+ * Contenido de la información de la Junta que se muestra en el inicio.
  *
  * Los textos de quiénes somos, órganos de dirección, misión y directiva los proporcionó la Junta.
  * La dirección de la sede la proporcionó la Junta. El horario, el teléfono y el correo siguen
- * pendientes de confirmar. Para actualizar cualquiera basta con editar este archivo; la página no
+ * pendientes de confirmar. Para actualizar cualquiera basta con editar este archivo; la portada no
  * necesita otros cambios.
  */
 import { NOMBRES_DIRECTIVA } from '../../core/utils/directiva';
@@ -20,6 +20,10 @@ export interface DatoContacto {
   valor: string;
   icono: string;
 }
+
+/** Sede y horario: se muestran en el inicio y en el pie de página. */
+export const SEDE_JUNTA = 'Complejo PROMACERO, Sector La Merced';
+export const ATENCION_JUNTA = 'Sábados de 08:00 a 12:00';
 
 export const INFORMACION_JUNTA = {
   nombre: 'Junta de Agua y Riego "La Jones"',
@@ -60,10 +64,10 @@ export const INFORMACION_JUNTA = {
   contacto: [
     {
       etiqueta: 'Dirección de la sede',
-      valor: 'Complejo PROMACERO, Sector La Merced',
+      valor: SEDE_JUNTA,
       icono: 'ri-map-pin-line',
     },
-    { etiqueta: 'Atención', valor: 'Sábados de 08:00 a 12:00', icono: 'ri-time-line' },
+    { etiqueta: 'Atención', valor: ATENCION_JUNTA, icono: 'ri-time-line' },
     { etiqueta: 'Teléfono', valor: 'Por confirmar', icono: 'ri-phone-line' },
     { etiqueta: 'Correo', valor: 'Por confirmar', icono: 'ri-mail-line' },
   ] as DatoContacto[],

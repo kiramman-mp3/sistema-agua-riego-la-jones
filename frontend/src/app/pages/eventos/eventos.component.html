@@ -1,7 +1,7 @@
 <div class="portal">
   <header class="portal-cabecera" id="eventos">
     <app-curvas-nivel />
-    <h1 class="portal-cabecera__titulo">Tablón de Asambleas y Mingas</h1>
+    <h1 class="portal-cabecera__titulo">Asambleas y Mingas</h1>
     <p class="portal-cabecera__lead">
       Consulte los próximos eventos comunitarios programados y descargue su convocatoria.
     </p>
@@ -18,7 +18,7 @@
       [class.active]="tabActivo === 'ASAMBLEA'"
       (click)="setTab('ASAMBLEA')"
     >
-      <i class="ri-user-voice-line" aria-hidden="true"></i> Próximas Asambleas
+      <i class="ri-user-voice-line" aria-hidden="true"></i> Asambleas
     </button>
     <button
       type="button"
@@ -29,7 +29,7 @@
       [class.active]="tabActivo === 'MINGA'"
       (click)="setTab('MINGA')"
     >
-      <i class="ri-tools-line" aria-hidden="true"></i> Próximas Mingas
+      <i class="ri-tools-line" aria-hidden="true"></i> Mingas
     </button>
   </div>
 
@@ -70,18 +70,26 @@
                   </li>
                 }
               </ul>
-              <button
-                type="button"
-                class="btn btn--outline btn--sm evento__accion"
-                (click)="descargarConvocatoria(item)"
-              >
-                <i class="ri-file-pdf-2-line" aria-hidden="true"></i>
-                {{
-                  item.convocatoria_firmada_url
-                    ? 'Ver Convocatoria Firmada (PDF)'
-                    : 'Ver Convocatoria Oficial (PDF)'
-                }}
-              </button>
+              <div class="evento-acciones">
+                <button
+                  type="button"
+                  class="btn btn--outline"
+                  (click)="descargarConvocatoria(item)"
+                >
+                  <i class="ri-file-pdf-2-line" aria-hidden="true"></i>
+                  {{
+                    item.convocatoria_firmada_url
+                      ? 'Ver Convocatoria Firmada (PDF)'
+                      : 'Ver Convocatoria Oficial (PDF)'
+                  }}
+                </button>
+                @if (item.tipo === 'ASAMBLEA') {
+                  <ng-container
+                    [ngTemplateOutlet]="acta"
+                    [ngTemplateOutletContext]="{ $implicit: item, pendiente: false }"
+                  />
+                }
+              </div>
             </article>
           </li>
         }
@@ -97,5 +105,139 @@
         mensaje="Cuando la directiva convoque una, aparecerá aquí."
       />
     }
+
+    <!-- PASADAS: se abren a pedido, de la más reciente a la más antigua -->
+    <section class="pasados" aria-labelledby="pasados-titulo">
+      <button
+        type="button"
+        class="btn btn--outline pasados__boton"
+        [attr.aria-expanded]="pasadosActivos.visible"
+        aria-controls="pasados-lista"
+        (click)="alternarPasados()"
+      >
+        <span class="pasados__etiqueta"
+          ><i class="ri-history-line" aria-hidden="true"></i>
+          {{
+            pasadosActivos.visible
+              ? tabActivo === 'ASAMBLEA'
+                ? 'Ocultar asambleas pasadas'
+                : 'Ocultar mingas pasadas'
+              : tabActivo === 'ASAMBLEA'
+                ? 'Ver asambleas pasadas'
+                : 'Ver mingas pasadas'
+          }}</span
+        >
+        <i class="ri-arrow-down-s-line pasados__flecha" aria-hidden="true"></i>
+      </button>
+
+      @if (pasadosActivos.visible) {
+        <div id="pasados-lista" class="pasados__contenido">
+          <h2 id="pasados-titulo" class="portal-subtitulo">
+            {{ tabActivo === 'ASAMBLEA' ? 'Asambleas pasadas' : 'Mingas pasadas' }}
+          </h2>
+
+          @if (pasadosActivos.items.length) {
+            <ul class="pasados__lista">
+              @for (item of pasadosActivos.items; track item.id) {
+                <li class="pasado">
+                  <article>
+                    <div class="pasado__cabecera">
+                      <h3 class="pasado__titulo">{{ item.titulo }}</h3>
+                      <time class="pasado__fecha" [attr.datetime]="item.fecha">{{
+                        item.fecha | fechaLocal: 'larga'
+                      }}</time>
+                    </div>
+                    @if (item.lugar) {
+                      <p class="pasado__lugar">
+                        <i class="ri-map-pin-2-line" aria-hidden="true"></i> {{ item.lugar }}
+                      </p>
+                    }
+                    @if (item.descripcion) {
+                      <p class="pasado__resumen">{{ item.descripcion }}</p>
+                    }
+                    @if (item.tipo === 'ASAMBLEA') {
+                      <div class="evento-acciones">
+                        <button
+                          type="button"
+                          class="btn btn--outline"
+                          (click)="descargarConvocatoria(item)"
+                        >
+                          <i class="ri-file-pdf-2-line" aria-hidden="true"></i>
+                          {{
+                            item.convocatoria_firmada_url
+                              ? 'Ver Convocatoria Firmada (PDF)'
+                              : 'Ver Convocatoria (PDF)'
+                          }}
+                        </button>
+                        <ng-container
+                          [ngTemplateOutlet]="acta"
+                          [ngTemplateOutletContext]="{ $implicit: item, pendiente: true }"
+                        />
+                      </div>
+                    }
+                  </article>
+                </li>
+              }
+            </ul>
+
+            @if (pasadosActivos.items.length < pasadosActivos.total) {
+              <div class="pasados__mas">
+                <button
+                  type="button"
+                  class="btn btn--outline"
+                  [disabled]="pasadosActivos.cargando"
+                  (click)="cargarPasados()"
+                >
+                  <i class="ri-add-line" aria-hidden="true"></i>
+                  {{ pasadosActivos.cargando ? 'Cargando…' : 'Cargar más' }}
+                </button>
+              </div>
+            }
+          } @else if (pasadosActivos.cargando) {
+            <p class="pasados__estado" role="status">Cargando…</p>
+          } @else if (!pasadosActivos.error) {
+            <app-empty-state
+              icono="ri-history-line"
+              [titulo]="
+                tabActivo === 'ASAMBLEA'
+                  ? 'Aún no hay asambleas pasadas.'
+                  : 'Aún no hay mingas pasadas.'
+              "
+              mensaje="Las que se realicen aparecerán aquí."
+            />
+          }
+
+          @if (pasadosActivos.error) {
+            <app-empty-state
+              tono="error"
+              icono="ri-wifi-off-line"
+              titulo="No se pudieron cargar"
+              mensaje="Revise su conexión e intente de nuevo."
+            >
+              <button type="button" class="btn btn--outline btn--sm" (click)="cargarPasados()">
+                Reintentar
+              </button>
+            </app-empty-state>
+          }
+        </div>
+      }
+    </section>
   </div>
 </div>
+
+<!-- Acta firmada de una asamblea: con sesión se abre; sin ella se invita a iniciarla. -->
+<ng-template #acta let-item let-pendiente="pendiente">
+  @if (item.acta_firmada_url) {
+    @if (auth.isLoggedIn()) {
+      <button type="button" class="btn btn--primary" (click)="verActa(item)">
+        <i class="ri-article-line" aria-hidden="true"></i> Ver Acta Firmada
+      </button>
+    } @else {
+      <a routerLink="/login" class="btn btn--ghost evento-acta-login">
+        <i class="ri-lock-line" aria-hidden="true"></i> Inicie sesión para ver el acta firmada
+      </a>
+    }
+  } @else if (pendiente) {
+    <span class="evento-acta-pendiente">Acta firmada aún no publicada</span>
+  }
+</ng-template>

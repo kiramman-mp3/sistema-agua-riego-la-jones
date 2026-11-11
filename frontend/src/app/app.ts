@@ -6,6 +6,7 @@ import { ThemeService } from './core/services/theme.service';
 import { NotificationService } from './core/services/notification.service';
 import { ToastContainerComponent } from './shared/toast-container/toast-container.component';
 import { DialogContainerComponent } from './shared/dialog-container/dialog-container.component';
+import { ATENCION_JUNTA, SEDE_JUNTA } from './pages/inicio/informacion-junta.data';
 
 @Component({
   selector: 'app-root',
@@ -22,6 +23,8 @@ import { DialogContainerComponent } from './shared/dialog-container/dialog-conta
 })
 export class App {
   title = 'Junta de Agua La Jones';
+  readonly sede = SEDE_JUNTA;
+  readonly atencion = ATENCION_JUNTA;
   menuAbierto = false;
 
   public authService = inject(AuthService);

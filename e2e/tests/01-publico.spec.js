@@ -4,11 +4,12 @@ const { descargarPdf } = require('./ayudas');
 // Portal público: lo ve cualquier persona sin iniciar sesión.
 test.use({ storageState: { cookies: [], origins: [] } });
 
-test('el inicio presenta la Junta, sus cifras y las próximas convocatorias', async ({ page }) => {
+test('el inicio presenta la Junta, el carrusel de noticias y las próximas convocatorias', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'Gestión del Agua de Riego y Servicios Comunitarios', level: 1 })).toBeVisible();
-  await expect(page.getByText('Usuarios activos')).toBeVisible();
-  await expect(page.getByText('Caudal Total')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Junta de Riego La Jones - Patate', level: 1 })).toBeVisible();
+  const carrusel = page.getByRole('region', { name: 'Últimas noticias' });
+  await expect(carrusel.getByRole('link', { name: 'Minga de limpieza del canal matriz antes del verano' })).toBeVisible();
+  await expect(carrusel.getByRole('link', { name: 'Ver todas las noticias' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Próximas Mingas y Asambleas' })).toBeVisible();
   // Las convocatorias son públicas, pero no exponen datos de personas.
   await expect(page.getByText(/Hora de inicio: \d{2}:\d{2}/).first()).toBeVisible();
@@ -16,9 +17,30 @@ test('el inicio presenta la Junta, sus cifras y las próximas convocatorias', as
   await expect(page.locator('body')).not.toContainText(/\b\d{10}\b/);
 });
 
+test('el tablón permite ver las asambleas y mingas pasadas', async ({ page }) => {
+  await page.goto('/eventos');
+  await page.getByRole('button', { name: 'Ver asambleas pasadas' }).click();
+  await expect(page.getByRole('heading', { name: 'Asambleas pasadas' })).toBeVisible();
+  const asambleas = page.locator('.pasado');
+  await expect(asambleas.first()).toContainText(/\d{4}/);
+  await expect(asambleas.first().getByRole('button', { name: /Ver Convocatoria/ })).toBeVisible();
+  // Sin sesión no se abre el acta: solo se avisa si ya está firmada o aún no.
+  await expect(asambleas.first().getByRole('button', { name: 'Ver Acta Firmada' })).toHaveCount(0);
+
+  await page.getByRole('tab', { name: 'Mingas' }).click();
+  await page.getByRole('button', { name: 'Ver mingas pasadas' }).click();
+  await expect(page.getByRole('heading', { name: 'Mingas pasadas' })).toBeVisible();
+  await expect(page.locator('.pasado').first()).toBeVisible();
+  // Las mingas pasadas muestran título, fecha y resumen, sin documentos.
+  await expect(page.locator('.pasado').getByRole('button')).toHaveCount(0);
+
+  await page.getByRole('button', { name: 'Ocultar mingas pasadas' }).click();
+  await expect(page.locator('.pasado')).toHaveCount(0);
+});
+
 test('el tablón de eventos lista asambleas con su multa y la convocatoria oficial en PDF', async ({ page }) => {
   await page.goto('/eventos');
-  await expect(page.getByRole('heading', { name: 'Tablón de Asambleas y Mingas' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Asambleas y Mingas' })).toBeVisible();
   await expect(page.getByText(/Multa: \$\d+\.\d{2}/).first()).toBeVisible();
   const boton = page.getByRole('button', { name: /Ver Convocatoria (Oficial|Firmada) \(PDF\)/ }).first();
   await expect(boton).toBeVisible();
@@ -29,22 +51,27 @@ test('el tablón de eventos lista asambleas con su multa y la convocatoria ofici
   expect(contenido.length).toBeGreaterThan(1000);
 });
 
-test('la página de información muestra quiénes somos, órganos de dirección, misión y sectores', async ({ page }) => {
-  await page.goto('/informacion');
+test('el inicio muestra quiénes somos, la misión, los sectores, la directiva y el contacto', async ({ page }) => {
+  await page.goto('/');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('La Jones');
-  for (const titulo of ['Quiénes somos', 'Órganos de Dirección', 'Nuestra misión', 'Sectores de riego', 'Contacto y atención']) {
+  for (const titulo of ['Quiénes somos', 'Nuestra misión', 'Sectores y Distribución de Agua', 'Órganos de Dirección', 'Contacto y atención']) {
     await expect(page.getByRole('heading', { name: titulo })).toBeVisible();
   }
   await expect(page.getByText(/\d+ lotes/).first()).toBeVisible();
+  await expect(page.getByText('Complejo PROMACERO, Sector La Merced')).toBeVisible();
+});
+
+test('la antigua página de información lleva al inicio y ya no está en el menú', async ({ page }) => {
+  await page.goto('/informacion');
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('link', { name: 'Información de la Junta' })).toHaveCount(0);
 });
 
 test('la navegación principal recorre las páginas públicas', async ({ page }) => {
   await page.goto('/');
   const menu = page.getByRole('navigation', { name: 'Navegación principal' });
-  await menu.getByRole('link', { name: 'Eventos y Actas' }).click();
+  await menu.getByRole('link', { name: 'Comunicaciones' }).click();
   await expect(page).toHaveURL(/\/eventos$/);
-  await menu.getByRole('link', { name: 'Información de la Junta' }).click();
-  await expect(page).toHaveURL(/\/informacion$/);
   await menu.getByRole('link', { name: 'Inicio', exact: true }).click();
   await expect(page).toHaveURL(/\/$/);
   await menu.getByRole('link', { name: 'Iniciar Sesión' }).click();

@@ -54,8 +54,8 @@ test('el tablón público solo muestra las mingas programadas o convocadas', asy
   const anonima = await publico.newPage();
   const verEnTablon = async () => {
     await anonima.goto('http://127.0.0.1:3210/eventos');
-    await anonima.getByRole('heading', { name: 'Tablón de Asambleas y Mingas' }).waitFor();
-    await anonima.getByRole('tab', { name: /Próximas Mingas/ }).click();
+    await anonima.getByRole('heading', { name: 'Asambleas y Mingas' }).waitFor();
+    await anonima.getByRole('tab', { name: 'Mingas' }).click();
     return anonima.getByText(TITULO);
   };
 
@@ -146,8 +146,8 @@ test('cancelar la minga la retira del tablón público', async ({ page, browser 
   const publico = await browser.newContext({ storageState: { cookies: [], origins: [] } });
   const anonima = await publico.newPage();
   await anonima.goto('http://127.0.0.1:3210/eventos');
-  await anonima.getByRole('heading', { name: 'Tablón de Asambleas y Mingas' }).waitFor();
-  await anonima.getByRole('tab', { name: /Próximas Mingas/ }).click();
+  await anonima.getByRole('heading', { name: 'Asambleas y Mingas' }).waitFor();
+  await anonima.getByRole('tab', { name: 'Mingas' }).click();
   await expect(anonima.getByText(TITULO)).toHaveCount(0);
   await publico.close();
 });

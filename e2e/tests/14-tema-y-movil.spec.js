@@ -40,7 +40,7 @@ test.describe('teléfono (390 px)', () => {
   test('las páginas públicas no desbordan la pantalla y el menú se abre', async ({ browser }) => {
     const contexto = await browser.newContext({ viewport: VISTA_MOVIL, baseURL: 'http://127.0.0.1:3210', storageState: { cookies: [], origins: [] } });
     const page = await contexto.newPage();
-    for (const ruta of ['/', '/noticias', '/noticias/todas', '/eventos', '/informacion', '/login']) {
+    for (const ruta of ['/', '/noticias/todas', '/eventos', '/login']) {
       await page.goto(ruta);
       const desborde = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
       expect(desborde, `${ruta} desborda horizontalmente`).toBeLessThanOrEqual(1);
@@ -50,11 +50,11 @@ test.describe('teléfono (390 px)', () => {
     await expect(menu).toBeVisible();
     await menu.click();
     await expect(menu).toHaveAttribute('aria-expanded', 'true');
-    await page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('link', { name: 'Eventos y Actas' }).click();
+    await page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('link', { name: 'Comunicaciones' }).click();
     await expect(page).toHaveURL(/\/eventos$/);
   });
 
-  test('el panel de la directiva usa la barra inferior y llega a todos los módulos', async ({ page }) => {
+  test('la gestión usa la barra inferior y llega a todos los módulos', async ({ page }) => {
     await page.goto('/admin/dashboard');
     const barra = page.getByRole('navigation', { name: 'Secciones del panel' });
     await expect(barra).toBeVisible();

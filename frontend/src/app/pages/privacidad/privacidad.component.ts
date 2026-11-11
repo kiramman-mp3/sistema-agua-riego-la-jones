@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { CurvasNivelComponent } from '../../shared/ui/curvas-nivel.component';
 import { AVISO_PRIVACIDAD } from './privacidad.data';
 
@@ -6,7 +7,7 @@ import { AVISO_PRIVACIDAD } from './privacidad.data';
 @Component({
   selector: 'app-privacidad',
   standalone: true,
-  imports: [CurvasNivelComponent],
+  imports: [CurvasNivelComponent, RouterLink],
   templateUrl: './privacidad.component.html',
   styleUrls: ['./privacidad.component.scss'],
 })

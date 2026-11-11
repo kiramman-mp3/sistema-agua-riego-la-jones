@@ -6,15 +6,6 @@ const router = express.Router();
 
 /**
  * @openapi
- * /personas/stats:
- *   get:
- *     tags: [Usuarios (Personas)]
- *     summary: Estadísticas públicas (sin datos personales)
- */
-router.get('/stats', personaController.getStatsPublicos);
-
-/**
- * @openapi
  * /personas/consulta/{cedula}:
  *   get:
  *     tags: [Usuarios (Personas)]

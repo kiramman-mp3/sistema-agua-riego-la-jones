@@ -11,6 +11,10 @@ const router = express.Router();
  *   get:
  *     tags: [Eventos y Asistencias]
  *     summary: Próximas asambleas y mingas publicadas (sin datos personales)
+ * /eventos/publicos/pasados:
+ *   get:
+ *     tags: [Eventos y Asistencias]
+ *     summary: Asambleas o mingas ya realizadas, paginadas (sin datos personales). Query tipo=ASAMBLEA|MINGA, pagina, limite
  * /eventos:
  *   get:
  *     tags: [Eventos y Asistencias]
@@ -49,6 +53,7 @@ const router = express.Router();
  *     security: [{ bearerAuth: [] }]
  */
 router.get('/publicos', eventoController.getEventosPublicos);
+router.get('/publicos/pasados', eventoController.getEventosPasados);
 router.get('/', ...soloAdmin, eventoController.getEventos);
 router.post('/', ...soloAdmin, eventoController.createEvento);
 

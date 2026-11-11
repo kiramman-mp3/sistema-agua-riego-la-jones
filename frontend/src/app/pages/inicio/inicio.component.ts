@@ -6,8 +6,11 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 import { FechaLocalPipe } from '../../shared/pipes/fecha-local.pipe';
 import { CurvasNivelComponent } from '../../shared/ui/curvas-nivel.component';
+import { NoticiasCarruselComponent } from './noticias-carrusel.component';
 import { partesFecha } from '../../core/utils/fechas';
 import { NOMBRES_DIRECTIVA } from '../../core/utils/directiva';
+import { iniciales } from '../../core/utils/personas';
+import { INFORMACION_JUNTA } from './informacion-junta.data';
 import {
   ApiResponse,
   CronogramaSectorPublico,
@@ -20,12 +23,6 @@ import { AYUDAS_FORMULARIO } from '../../core/directives/formularios';
 type DiaCronograma = CronogramaSectorPublico['dias'][number];
 type DiaVisible = DiaCronograma & { turnosFiltrados: TurnoCronogramaPublico[] };
 
-interface StatsPublicos {
-  totalUsuarios: number;
-  totalLotes: number;
-  totalSectores: number;
-}
-
 @Component({
   selector: 'app-inicio',
   standalone: true,
@@ -36,18 +33,22 @@ interface StatsPublicos {
     FechaLocalPipe,
     RouterLink,
     CurvasNivelComponent,
+    NoticiasCarruselComponent,
   ],
   templateUrl: './inicio.component.html',
-  styleUrls: ['./inicio.portada.scss', './inicio.component.scss'],
+  styleUrls: ['./inicio.portada.scss', './inicio.informacion.scss', './inicio.component.scss'],
 })
 export class InicioComponent implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly cdr = inject(ChangeDetectorRef);
 
+  /** Quiénes somos, misión, directiva y contacto de la Junta. */
+  readonly info = INFORMACION_JUNTA;
+  readonly iniciales = iniciales;
+
   /** Firman el cronograma impreso. */
   readonly directiva = NOMBRES_DIRECTIVA;
 
-  totalUsuarios = 0;
   proximosEventos: EventoItem[] = [];
   sectores: SectorItem[] = [];
 
@@ -71,18 +72,6 @@ export class InicioComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.http.get<ApiResponse<StatsPublicos>>(`${environment.apiUrl}/personas/stats`).subscribe({
-      next: (res) => {
-        if (res?.data) {
-          this.totalUsuarios = res.data.totalUsuarios;
-          this.cdr.detectChanges();
-        }
-      },
-      error: () => {
-        this.cdr.detectChanges();
-      },
-    });
-
     this.http.get<ApiResponse<EventoItem[]>>(`${environment.apiUrl}/eventos/publicos`).subscribe({
       next: (res) => {
         if (res?.data) {

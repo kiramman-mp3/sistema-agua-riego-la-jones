@@ -8,7 +8,7 @@ const valorDe = async (page, nombre) =>
 
 test('el tablero muestra los cuatro indicadores financieros con importes válidos', async ({ page }) => {
   await page.goto('/admin/dashboard');
-  await expect(page.getByRole('heading', { name: 'Resumen de la Junta' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Resumen', exact: true })).toBeVisible();
   for (const nombre of ['Recaudado este mes', 'Pendiente por cobrar', 'Egresos este mes', 'Saldo de caja']) {
     const tile = page.locator('.stat-tile', { hasText: nombre });
     await expect(tile).toBeVisible();
@@ -33,7 +33,7 @@ test('los indicadores del tablero coinciden con los de Cobros y pagos', async ({
   expect(dinero(egresosMes.match(/Egresos del mes: (\$[\d.]+)/)[1])).toBeCloseTo(tablero.egresos, 2);
 });
 
-test('el resumen operativo concuerda con lo que ve el público', async ({ page, browser }) => {
+test('el resumen operativo muestra números coherentes', async ({ page }) => {
   await page.goto('/admin/dashboard');
   const activos = await page.locator('.metric-list div', { hasText: 'Usuarios activos' }).locator('dd').innerText();
   expect(Number(activos)).toBeGreaterThan(100);
@@ -44,13 +44,6 @@ test('el resumen operativo concuerda con lo que ve el público', async ({ page, 
   await expect(page.locator('.metric-list div', { hasText: 'Cuentas de acceso activas' }).locator('dd')).toHaveText(/^\s*\d+\s*$/);
   const mora = (await page.locator('.metric-list div', { hasText: 'Usuarios en mora' }).locator('dd').innerText()).trim();
   await expect(page.getByText(`${mora} usuarios en mora`)).toBeVisible();
-
-  const publico = await browser.newContext({ storageState: { cookies: [], origins: [] } });
-  const anonima = await publico.newPage();
-  await anonima.goto('http://127.0.0.1:3210/');
-  const textoInicio = await anonima.locator('body').innerText();
-  expect(Number(textoInicio.match(/Usuarios activos\s*(\d+)/)[1])).toBe(Number(activos));
-  await publico.close();
 });
 
 test('Actualizar indicadores vuelve a consultar el resumen', async ({ page }) => {
@@ -63,7 +56,7 @@ test('Actualizar indicadores vuelve a consultar el resumen', async ({ page }) =>
   expect(respuesta.status()).toBe(200);
 });
 
-test('los próximos eventos enlazan con Asistencias', async ({ page }) => {
+test('los próximos eventos enlazan con Convocatorias', async ({ page }) => {
   await page.goto('/admin/dashboard');
   const lista = page.locator('.event-list__item');
   await expect(lista.first()).toBeVisible();
@@ -118,7 +111,7 @@ test.describe('acciones rápidas', () => {
 test.describe('menú del panel', () => {
   const destinos = [
     ['Gestión de Usuarios', /\/admin\/usuarios\/padron/],
-    ['Asistencias', /\/admin\/asistencias\/asambleas/],
+    ['Convocatorias', /\/admin\/asistencias\/asambleas/],
     ['Turnos de agua', /\/admin\/turnos/],
     ['Cobros y pagos', /\/admin\/cobros\/cobrar/],
     ['Tarifas y pago anual', /\/admin\/ajustes\/tarifas/],

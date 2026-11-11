@@ -9,12 +9,8 @@ import { ROLES } from './core/auth/session';
 export const routes: Routes = [
   { path: '', component: InicioComponent },
   { path: 'eventos', component: EventosComponent },
-  {
-    path: 'noticias',
-    title: 'Noticias · Junta La Jones',
-    loadComponent: () =>
-      import('./pages/noticias/noticias.component').then((m) => m.NoticiasComponent),
-  },
+  // Las noticias recientes están en el carrusel de Inicio; /noticias lleva al archivo completo.
+  { path: 'noticias', pathMatch: 'full', redirectTo: 'noticias/todas' },
   // "todas" va antes de ":id" para que no se lea como el identificador de una noticia.
   {
     path: 'noticias/todas',
@@ -28,11 +24,8 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./pages/noticias/noticia-detalle.component').then((m) => m.NoticiaDetalleComponent),
   },
-  {
-    path: 'informacion',
-    loadComponent: () =>
-      import('./pages/informacion/informacion.component').then((m) => m.InformacionComponent),
-  },
+  // La información de la Junta ahora está en el inicio; los enlaces viejos llevan allí.
+  { path: 'informacion', pathMatch: 'full', redirectTo: '' },
   {
     path: 'privacidad',
     title: 'Aviso de privacidad · Junta La Jones',
@@ -43,6 +36,13 @@ export const routes: Routes = [
     path: 'mi-cuenta',
     loadComponent: () =>
       import('./pages/mi-cuenta/mi-cuenta.component').then((m) => m.MiCuentaComponent),
+    canActivate: [authGuard],
+  },
+  {
+    path: 'mi-cuenta/lotes',
+    title: 'Mis lotes · Junta La Jones',
+    loadComponent: () =>
+      import('./pages/mi-cuenta/mis-lotes.component').then((m) => m.MisLotesComponent),
     canActivate: [authGuard],
   },
   { path: 'login', component: LoginComponent },

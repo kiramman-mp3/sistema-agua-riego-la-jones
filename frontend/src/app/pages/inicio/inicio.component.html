@@ -1,4 +1,4 @@
-<!-- PORTADA: el agua del canal, con las cifras de la Junta -->
+<!-- PORTADA: el agua del canal, con las últimas noticias de la Junta -->
 <section class="hero" id="inicio">
   <img
     class="hero__foto"
@@ -10,26 +10,27 @@
   />
   <app-curvas-nivel class="hero__curvas" />
   <div class="portal hero__contenido">
-    <h1 class="hero__titulo">Gestión del Agua de Riego y Servicios Comunitarios</h1>
-    <p class="hero__lead">
-      Plataforma oficial para la administración de los usuarios, turnos de agua, convocatorias a
-      mingas y consulta pública de obligaciones.
-    </p>
+    <div class="hero__cabecera">
+      <div class="hero__texto">
+        <h1 class="hero__titulo">Junta de Riego La Jones - Patate</h1>
+        <p class="hero__lead">
+          Plataforma oficial para la administración de los usuarios, turnos de agua, convocatorias a
+          mingas y consulta pública de obligaciones.
+        </p>
 
-    <dl class="hero__cifras" aria-label="Canal de Riego La Jones">
-      <div>
-        <dt>Usuarios activos</dt>
-        <dd>{{ totalUsuarios || 0 }}</dd>
+        <app-noticias-carrusel />
       </div>
-      <div>
-        <dt>Sectores</dt>
-        <dd>{{ sectores.length || 3 }}</dd>
+
+      <div class="hero__logo">
+        <img
+          src="imagenes/marca-junta-completo.png"
+          loading="lazy"
+          width="914"
+          height="914"
+          alt="Junta de Riego La Jones - Patate. El agua que da vida a nuestro campo"
+        />
       </div>
-      <div>
-        <dt>Caudal total</dt>
-        <dd>55.7 <small>L/s</small></dd>
-      </div>
-    </dl>
+    </div>
 
     <div class="hero__consulta">
       <div>
@@ -82,6 +83,29 @@
   </section>
 }
 
+<!-- QUIÉNES SOMOS Y MISIÓN: el texto junto a la foto de la zona -->
+<section class="portal inicio__seccion" id="quienes-somos" aria-labelledby="quienes-titulo">
+  <div class="info__relato">
+    <div>
+      <h2 id="quienes-titulo" class="portal-subtitulo">Quiénes somos</h2>
+      <p class="info__texto">{{ info.quienesSomos }}</p>
+      <article class="declaracion">
+        <h3 class="declaracion__titulo">Nuestra misión</h3>
+        <p class="declaracion__texto">{{ info.mision }}</p>
+      </article>
+    </div>
+    <figure class="info__foto">
+      <img
+        src="imagenes/volcan-y-cultivos.jpg"
+        width="960"
+        height="1280"
+        loading="lazy"
+        alt="Volcán al atardecer sobre los cultivos de la zona"
+      />
+    </figure>
+  </div>
+</section>
+
 <!-- SECTORES Y CANALES: la barra de cada sector se llena según sus lotes -->
 <section class="portal inicio__seccion" id="sectores" aria-labelledby="sectores-titulo">
   <h2 id="sectores-titulo" class="portal-subtitulo">Sectores y Distribución de Agua</h2>
@@ -112,6 +136,44 @@
       </li>
     }
   </ul>
+</section>
+
+<!-- ÓRGANOS DE DIRECCIÓN -->
+<section class="portal inicio__seccion" id="directiva" aria-labelledby="directiva-titulo">
+  <h2 id="directiva-titulo" class="portal-subtitulo">Órganos de Dirección</h2>
+  <div class="info__organos">
+    <div>
+      <p class="info__texto">{{ info.organos.asamblea }}</p>
+      <p class="info__texto">{{ info.organos.directiva }}</p>
+    </div>
+    <div>
+      <ul class="directiva">
+        @for (m of info.directiva; track m.cargo) {
+          <li class="directiva__persona">
+            <span class="directiva__monograma" aria-hidden="true">{{ iniciales(m.nombre) }}</span>
+            <div>
+              <p class="directiva__nombre">{{ m.titulo }} {{ m.nombre }}</p>
+              <p class="directiva__cargo">{{ m.cargo }}</p>
+            </div>
+          </li>
+        }
+      </ul>
+      <p class="info__nota info__nota--pie">{{ info.organos.vocales }}</p>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACTO Y ATENCIÓN -->
+<section class="portal inicio__seccion" id="contacto" aria-labelledby="contacto-titulo">
+  <h2 id="contacto-titulo" class="portal-subtitulo">Contacto y atención</h2>
+  <dl class="contacto">
+    @for (c of info.contacto; track c.etiqueta) {
+      <div class="contacto__dato" [class.contacto__dato--pendiente]="c.valor === 'Por confirmar'">
+        <dt><i [class]="c.icono" aria-hidden="true"></i> {{ c.etiqueta }}</dt>
+        <dd>{{ c.valor }}</dd>
+      </div>
+    }
+  </dl>
 </section>
 
 <!-- MODAL CRONOGRAMA DE AGUA POR SECTOR (DISEÑADO PARA ADULTOS MAYORES Y USUARIOS DE PATATE) -->

@@ -514,16 +514,6 @@ async function desbloquearCuenta(req, res) {
   return res.json({ status: 'OK', message: 'Cuenta desbloqueada. El usuario ya puede iniciar sesión.' });
 }
 
-/** Estadísticas públicas sin datos personales. */
-async function getStatsPublicos(req, res) {
-  const [[stats]] = await db.query(
-    `SELECT (SELECT COUNT(*) FROM personas WHERE estado = 'ACTIVO') AS totalUsuarios,
-            (SELECT COUNT(*) FROM lotes WHERE activo = TRUE) AS totalLotes,
-            (SELECT COUNT(*) FROM sectores WHERE activo = TRUE) AS totalSectores`
-  );
-  return res.json({ status: 'OK', data: stats });
-}
-
 module.exports = {
   getPersonas,
   getPersonaById,
@@ -533,6 +523,5 @@ module.exports = {
   deletePersona,
   crearCuenta,
   actualizarCuenta,
-  restablecerPassword, getCuentasBloqueadas, desbloquearCuenta,
-  getStatsPublicos
+  restablecerPassword, getCuentasBloqueadas, desbloquearCuenta
 };

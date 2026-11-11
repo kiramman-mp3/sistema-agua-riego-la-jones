@@ -73,6 +73,13 @@
     letter-spacing: -0.015em;
   }
 
+  &__enlace a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-weight: 600;
+  }
+
   &__fecha {
     color: var(--text-muted);
     font-size: 0.95rem;

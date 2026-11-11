@@ -14,13 +14,11 @@
           >Inicio</a
         >
       </li>
-      <li><a routerLink="/noticias" routerLinkActive="active">Noticias</a></li>
-      <li><a routerLink="/eventos" routerLinkActive="active">Eventos y Actas</a></li>
-      <li><a routerLink="/informacion" routerLinkActive="active">Información de la Junta</a></li>
+      <li><a routerLink="/eventos" routerLinkActive="active">Comunicaciones</a></li>
       @if (authService.isLoggedIn()) {
         <li>
           @if (authService.esAdmin()) {
-            <a routerLink="/admin" routerLinkActive="active">Panel de la directiva</a>
+            <a routerLink="/admin" routerLinkActive="active">Gestión</a>
           }
           @if (authService.getUser()?.rol === 'USUARIO') {
             <a routerLink="/mi-cuenta" routerLinkActive="active">Mi cuenta</a>
@@ -86,23 +84,13 @@
           >
         </li>
         <li>
-          <a routerLink="/noticias" routerLinkActive="active" (click)="cerrarMenu()">Noticias</a>
-        </li>
-        <li>
           <a routerLink="/eventos" routerLinkActive="active" (click)="cerrarMenu()"
-            >Eventos y Actas</a
-          >
-        </li>
-        <li>
-          <a routerLink="/informacion" routerLinkActive="active" (click)="cerrarMenu()"
-            >Información de la Junta</a
+            >Comunicaciones</a
           >
         </li>
         @if (authService.isLoggedIn() && authService.esAdmin()) {
           <li>
-            <a routerLink="/admin" routerLinkActive="active" (click)="cerrarMenu()"
-              >Panel de la directiva</a
-            >
+            <a routerLink="/admin" routerLinkActive="active" (click)="cerrarMenu()">Gestión</a>
           </li>
         }
         @if (authService.isLoggedIn() && authService.getUser()?.rol === 'USUARIO') {
@@ -151,22 +139,20 @@
         <strong>Navegar</strong>
         <ul>
           <li><a routerLink="/">Inicio</a></li>
-          <li><a routerLink="/noticias">Noticias</a></li>
-          <li><a routerLink="/eventos">Eventos y Actas</a></li>
-          <li><a routerLink="/informacion">Información de la Junta</a></li>
+          <li><a routerLink="/eventos">Comunicaciones</a></li>
           <li><a routerLink="/privacidad">Aviso de privacidad</a></li>
           <li><a routerLink="/mi-cuenta">Mi cuenta: multas y pagos</a></li>
-          <li><a routerLink="/admin">Panel de la directiva</a></li>
+          <li><a routerLink="/admin">Gestión</a></li>
         </ul>
       </nav>
 
       <div class="footer-links">
         <strong>Ubicación</strong>
         <p>
-          <i class="ri-map-pin-line" aria-hidden="true"></i> Sector Las Jones, Cantón Patate,
-          Provincia de Tungurahua, Ecuador.
+          <i class="ri-map-pin-line" aria-hidden="true"></i> {{ sede }}, cantón Patate, provincia de
+          Tungurahua, Ecuador.
         </p>
-        <p><i class="ri-time-line" aria-hidden="true"></i> Atención: sábados de 08:00 a 12:00.</p>
+        <p><i class="ri-time-line" aria-hidden="true"></i> Atención: {{ atencion }}.</p>
       </div>
     </div>
     <div class="footer-bottom">
