@@ -66,6 +66,11 @@
       height: auto;
     }
 
+    // En teléfono el título ya dice el nombre y el logo solo alarga la portada.
+    @media (max-width: 599px) {
+      display: none;
+    }
+
     @media (max-width: 899px) {
       width: min(100%, 13rem);
     }
