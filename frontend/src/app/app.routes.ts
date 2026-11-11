@@ -24,11 +24,8 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./pages/noticias/noticia-detalle.component').then((m) => m.NoticiaDetalleComponent),
   },
-  {
-    path: 'informacion',
-    loadComponent: () =>
-      import('./pages/informacion/informacion.component').then((m) => m.InformacionComponent),
-  },
+  // La información de la Junta ahora está en el inicio; los enlaces viejos llevan allí.
+  { path: 'informacion', pathMatch: 'full', redirectTo: '' },
   {
     path: 'privacidad',
     title: 'Aviso de privacidad · Junta La Jones',
