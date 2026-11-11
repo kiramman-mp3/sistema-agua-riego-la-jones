@@ -8,7 +8,7 @@ const valorDe = async (page, nombre) =>
 
 test('el tablero muestra los cuatro indicadores financieros con importes válidos', async ({ page }) => {
   await page.goto('/admin/dashboard');
-  await expect(page.getByRole('heading', { name: 'Resumen de la Junta' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Resumen', exact: true })).toBeVisible();
   for (const nombre of ['Recaudado este mes', 'Pendiente por cobrar', 'Egresos este mes', 'Saldo de caja']) {
     const tile = page.locator('.stat-tile', { hasText: nombre });
     await expect(tile).toBeVisible();

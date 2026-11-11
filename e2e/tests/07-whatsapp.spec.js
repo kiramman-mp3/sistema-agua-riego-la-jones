@@ -134,7 +134,7 @@ test('si el servicio de WhatsApp está apagado, el sistema lo informa y sigue fu
   await control(request, 'caer');
   try {
     await page.goto('/admin/dashboard');
-    await expect(page.getByText('Resumen de la Junta')).toBeVisible(); // el resto del sistema no se ve afectado
+    await expect(page.getByText('Resumen', { exact: true })).toBeVisible(); // el resto del sistema no se ve afectado
     await page.getByRole('button', { name: 'WhatsApp Web' }).click();
     const panel = page.getByRole('dialog');
     await expect(panel).toContainText(/no está disponible|no respondió|NO_DISPONIBLE/i);
