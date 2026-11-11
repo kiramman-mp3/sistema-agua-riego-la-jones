@@ -21,6 +21,10 @@ export interface DatoContacto {
   icono: string;
 }
 
+/** Sede y horario: se muestran en el inicio y en el pie de página. */
+export const SEDE_JUNTA = 'Complejo PROMACERO, Sector La Merced';
+export const ATENCION_JUNTA = 'Sábados de 08:00 a 12:00';
+
 export const INFORMACION_JUNTA = {
   nombre: 'Junta de Agua y Riego "La Jones"',
   descripcion:
@@ -60,10 +64,10 @@ export const INFORMACION_JUNTA = {
   contacto: [
     {
       etiqueta: 'Dirección de la sede',
-      valor: 'Complejo PROMACERO, Sector La Merced',
+      valor: SEDE_JUNTA,
       icono: 'ri-map-pin-line',
     },
-    { etiqueta: 'Atención', valor: 'Sábados de 08:00 a 12:00', icono: 'ri-time-line' },
+    { etiqueta: 'Atención', valor: ATENCION_JUNTA, icono: 'ri-time-line' },
     { etiqueta: 'Teléfono', valor: 'Por confirmar', icono: 'ri-phone-line' },
     { etiqueta: 'Correo', valor: 'Por confirmar', icono: 'ri-mail-line' },
   ] as DatoContacto[],
