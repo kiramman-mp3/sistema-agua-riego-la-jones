@@ -70,18 +70,26 @@
                   </li>
                 }
               </ul>
-              <button
-                type="button"
-                class="btn btn--outline btn--sm evento__accion"
-                (click)="descargarConvocatoria(item)"
-              >
-                <i class="ri-file-pdf-2-line" aria-hidden="true"></i>
-                {{
-                  item.convocatoria_firmada_url
-                    ? 'Ver Convocatoria Firmada (PDF)'
-                    : 'Ver Convocatoria Oficial (PDF)'
-                }}
-              </button>
+              <div class="evento-acciones">
+                <button
+                  type="button"
+                  class="btn btn--outline btn--sm"
+                  (click)="descargarConvocatoria(item)"
+                >
+                  <i class="ri-file-pdf-2-line" aria-hidden="true"></i>
+                  {{
+                    item.convocatoria_firmada_url
+                      ? 'Ver Convocatoria Firmada (PDF)'
+                      : 'Ver Convocatoria Oficial (PDF)'
+                  }}
+                </button>
+                @if (item.tipo === 'ASAMBLEA') {
+                  <ng-container
+                    [ngTemplateOutlet]="acta"
+                    [ngTemplateOutletContext]="{ $implicit: item, pendiente: false }"
+                  />
+                }
+              </div>
             </article>
           </li>
         }
@@ -145,7 +153,7 @@
                       <p class="pasado__resumen">{{ item.descripcion }}</p>
                     }
                     @if (item.tipo === 'ASAMBLEA') {
-                      <div class="pasado__acciones">
+                      <div class="evento-acciones">
                         <button
                           type="button"
                           class="btn btn--outline btn--sm"
@@ -158,24 +166,10 @@
                               : 'Ver Convocatoria (PDF)'
                           }}
                         </button>
-                        @if (item.acta_firmada_url) {
-                          @if (auth.isLoggedIn()) {
-                            <button
-                              type="button"
-                              class="btn btn--primary btn--sm"
-                              (click)="verActa(item)"
-                            >
-                              <i class="ri-article-line" aria-hidden="true"></i> Ver Acta Firmada
-                            </button>
-                          } @else {
-                            <a routerLink="/login" class="pasado__acta-login">
-                              <i class="ri-lock-line" aria-hidden="true"></i> Inicie sesión para ver
-                              el acta firmada
-                            </a>
-                          }
-                        } @else {
-                          <span class="pasado__acta-pendiente">Acta firmada aún no publicada</span>
-                        }
+                        <ng-container
+                          [ngTemplateOutlet]="acta"
+                          [ngTemplateOutletContext]="{ $implicit: item, pendiente: true }"
+                        />
                       </div>
                     }
                   </article>
@@ -224,3 +218,20 @@
     </section>
   </div>
 </div>
+
+<!-- Acta firmada de una asamblea: con sesión se abre; sin ella se invita a iniciarla. -->
+<ng-template #acta let-item let-pendiente="pendiente">
+  @if (item.acta_firmada_url) {
+    @if (auth.isLoggedIn()) {
+      <button type="button" class="btn btn--primary btn--sm" (click)="verActa(item)">
+        <i class="ri-article-line" aria-hidden="true"></i> Ver Acta Firmada
+      </button>
+    } @else {
+      <a routerLink="/login" class="evento-acta-login">
+        <i class="ri-lock-line" aria-hidden="true"></i> Inicie sesión para ver el acta firmada
+      </a>
+    }
+  } @else if (pendiente) {
+    <span class="evento-acta-pendiente">Acta firmada aún no publicada</span>
+  }
+</ng-template>

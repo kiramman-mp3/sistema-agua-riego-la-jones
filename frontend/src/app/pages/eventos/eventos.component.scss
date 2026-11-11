@@ -114,25 +114,26 @@
     line-height: 1.55;
     overflow-wrap: anywhere;
   }
+}
 
-  &__acciones {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.6rem 1rem;
-    margin-top: 1rem;
-  }
+// Convocatoria y acta de una asamblea, tanto en las próximas como en las pasadas.
+.evento-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem 1rem;
+  margin-top: 1rem;
+}
 
-  &__acta-login {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    font-weight: 600;
-    color: var(--color-primary);
-  }
+.evento-acta-login {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+  color: var(--color-primary);
+}
 
-  &__acta-pendiente {
-    font-size: 0.9rem;
-    color: var(--text-muted);
-  }
+.evento-acta-pendiente {
+  font-size: 0.9rem;
+  color: var(--text-muted);
 }

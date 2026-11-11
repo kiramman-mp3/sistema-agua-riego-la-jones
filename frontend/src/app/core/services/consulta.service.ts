@@ -47,16 +47,13 @@ export interface EventoPublico {
   genera_multa_ausencia: boolean | number;
   valor_multa: number | null;
   convocatoria_firmada_url: string | null;
-}
-
-/** Evento ya realizado (GET /eventos/publicos/pasados). El acta firmada solo la abre quien inició sesión. */
-export interface EventoPasado extends EventoPublico {
+  /** Ruta del acta firmada, si ya se subió. El archivo solo lo abre quien inició sesión. */
   acta_firmada_url: string | null;
 }
 
 export interface PaginaEventosPasados {
   status: 'OK' | 'ERROR';
-  data: EventoPasado[];
+  data: EventoPublico[];
   total: number;
   pagina: number;
   limite: number;

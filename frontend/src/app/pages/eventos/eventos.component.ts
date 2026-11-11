@@ -1,7 +1,7 @@
 import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { ConsultaService, EventoPasado, EventoPublico } from '../../core/services/consulta.service';
+import { ConsultaService, EventoPublico } from '../../core/services/consulta.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ActasService } from '../../core/services/actas.service';
 import { hoyEnEcuador, partesFecha } from '../../core/utils/fechas';
@@ -16,7 +16,7 @@ interface Pasados {
   visible: boolean;
   cargando: boolean;
   error: boolean;
-  items: EventoPasado[];
+  items: EventoPublico[];
   total: number;
   pagina: number;
 }
@@ -120,7 +120,7 @@ export class EventosComponent implements OnInit {
     });
   }
 
-  verActa(ev: EventoPasado) {
+  verActa(ev: EventoPublico) {
     this.consultaService.abrirDocumento(ev.acta_firmada_url);
   }
 
