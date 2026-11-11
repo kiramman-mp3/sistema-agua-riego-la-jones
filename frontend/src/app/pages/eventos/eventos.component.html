@@ -73,7 +73,7 @@
               <div class="evento-acciones">
                 <button
                   type="button"
-                  class="btn btn--outline btn--sm"
+                  class="btn btn--outline"
                   (click)="descargarConvocatoria(item)"
                 >
                   <i class="ri-file-pdf-2-line" aria-hidden="true"></i>
@@ -115,16 +115,19 @@
         aria-controls="pasados-lista"
         (click)="alternarPasados()"
       >
-        <i class="ri-history-line" aria-hidden="true"></i>
-        {{
-          pasadosActivos.visible
-            ? tabActivo === 'ASAMBLEA'
-              ? 'Ocultar asambleas pasadas'
-              : 'Ocultar mingas pasadas'
-            : tabActivo === 'ASAMBLEA'
-              ? 'Ver asambleas pasadas'
-              : 'Ver mingas pasadas'
-        }}
+        <span class="pasados__etiqueta"
+          ><i class="ri-history-line" aria-hidden="true"></i>
+          {{
+            pasadosActivos.visible
+              ? tabActivo === 'ASAMBLEA'
+                ? 'Ocultar asambleas pasadas'
+                : 'Ocultar mingas pasadas'
+              : tabActivo === 'ASAMBLEA'
+                ? 'Ver asambleas pasadas'
+                : 'Ver mingas pasadas'
+          }}</span
+        >
+        <i class="ri-arrow-down-s-line pasados__flecha" aria-hidden="true"></i>
       </button>
 
       @if (pasadosActivos.visible) {
@@ -156,7 +159,7 @@
                       <div class="evento-acciones">
                         <button
                           type="button"
-                          class="btn btn--outline btn--sm"
+                          class="btn btn--outline"
                           (click)="descargarConvocatoria(item)"
                         >
                           <i class="ri-file-pdf-2-line" aria-hidden="true"></i>
@@ -178,14 +181,17 @@
             </ul>
 
             @if (pasadosActivos.items.length < pasadosActivos.total) {
-              <button
-                type="button"
-                class="btn btn--outline btn--sm pasados__mas"
-                [disabled]="pasadosActivos.cargando"
-                (click)="cargarPasados()"
-              >
-                {{ pasadosActivos.cargando ? 'Cargando…' : 'Cargar más' }}
-              </button>
+              <div class="pasados__mas">
+                <button
+                  type="button"
+                  class="btn btn--outline"
+                  [disabled]="pasadosActivos.cargando"
+                  (click)="cargarPasados()"
+                >
+                  <i class="ri-add-line" aria-hidden="true"></i>
+                  {{ pasadosActivos.cargando ? 'Cargando…' : 'Cargar más' }}
+                </button>
+              </div>
             }
           } @else if (pasadosActivos.cargando) {
             <p class="pasados__estado" role="status">Cargando…</p>
@@ -223,11 +229,11 @@
 <ng-template #acta let-item let-pendiente="pendiente">
   @if (item.acta_firmada_url) {
     @if (auth.isLoggedIn()) {
-      <button type="button" class="btn btn--primary btn--sm" (click)="verActa(item)">
+      <button type="button" class="btn btn--primary" (click)="verActa(item)">
         <i class="ri-article-line" aria-hidden="true"></i> Ver Acta Firmada
       </button>
     } @else {
-      <a routerLink="/login" class="evento-acta-login">
+      <a routerLink="/login" class="btn btn--ghost evento-acta-login">
         <i class="ri-lock-line" aria-hidden="true"></i> Inicie sesión para ver el acta firmada
       </a>
     }
