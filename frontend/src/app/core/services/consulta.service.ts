@@ -49,6 +49,19 @@ export interface EventoPublico {
   convocatoria_firmada_url: string | null;
 }
 
+/** Evento ya realizado (GET /eventos/publicos/pasados). El acta firmada solo la abre quien inició sesión. */
+export interface EventoPasado extends EventoPublico {
+  acta_firmada_url: string | null;
+}
+
+export interface PaginaEventosPasados {
+  status: 'OK' | 'ERROR';
+  data: EventoPasado[];
+  total: number;
+  pagina: number;
+  limite: number;
+}
+
 /** Punto del orden del día de una asamblea, con su acta. */
 export interface PuntoAsamblea {
   id: number;
@@ -88,6 +101,16 @@ export class ConsultaService {
   getEventosPublicos(): Observable<RespuestaApi<EventoPublico[]>> {
     // Solo eventos anunciados y sin datos personales.
     return this.http.get<RespuestaApi<EventoPublico[]>>(`${this.apiUrl}/eventos/publicos`);
+  }
+
+  getEventosPasados(
+    tipo: EventoPublico['tipo'],
+    pagina: number,
+    limite = 10,
+  ): Observable<PaginaEventosPasados> {
+    return this.http.get<PaginaEventosPasados>(`${this.apiUrl}/eventos/publicos/pasados`, {
+      params: { tipo, pagina, limite },
+    });
   }
 
   getEventoDetalle(id: number): Observable<EventoDetalleResponse> {

@@ -44,3 +44,95 @@
 .eventos__canal {
   max-width: 62rem;
 }
+
+// --- Eventos pasados ------------------------------------------------------------------------------
+.pasados {
+  max-width: 62rem;
+  margin-top: clamp(2rem, 5vw, 3rem);
+
+  &__contenido {
+    margin-top: 1.75rem;
+  }
+
+  &__lista {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__mas {
+    margin-top: 1.5rem;
+  }
+
+  &__estado {
+    color: var(--text-muted);
+  }
+}
+
+.pasado {
+  padding: 1.35rem 0;
+  border-top: 1px solid var(--border-color);
+
+  &:last-child {
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  &__cabecera {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.25rem 1.5rem;
+  }
+
+  &__titulo {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  &__fecha {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+
+  &__lugar {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0.35rem 0 0;
+    font-size: 0.95rem;
+    color: var(--text-muted);
+  }
+
+  &__resumen {
+    max-width: 62ch;
+    margin: 0.6rem 0 0;
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+  }
+
+  &__acciones {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem 1rem;
+    margin-top: 1rem;
+  }
+
+  &__acta-login {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-weight: 600;
+    color: var(--color-primary);
+  }
+
+  &__acta-pendiente {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+}
