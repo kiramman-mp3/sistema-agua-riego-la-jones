@@ -9,6 +9,8 @@ import { CurvasNivelComponent } from '../../shared/ui/curvas-nivel.component';
 import { NoticiasCarruselComponent } from './noticias-carrusel.component';
 import { partesFecha } from '../../core/utils/fechas';
 import { NOMBRES_DIRECTIVA } from '../../core/utils/directiva';
+import { iniciales } from '../../core/utils/personas';
+import { INFORMACION_JUNTA } from './informacion-junta.data';
 import {
   ApiResponse,
   CronogramaSectorPublico,
@@ -34,11 +36,15 @@ type DiaVisible = DiaCronograma & { turnosFiltrados: TurnoCronogramaPublico[] };
     NoticiasCarruselComponent,
   ],
   templateUrl: './inicio.component.html',
-  styleUrls: ['./inicio.portada.scss', './inicio.component.scss'],
+  styleUrls: ['./inicio.portada.scss', './inicio.informacion.scss', './inicio.component.scss'],
 })
 export class InicioComponent implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly cdr = inject(ChangeDetectorRef);
+
+  /** Quiénes somos, misión, directiva y contacto de la Junta. */
+  readonly info = INFORMACION_JUNTA;
+  readonly iniciales = iniciales;
 
   /** Firman el cronograma impreso. */
   readonly directiva = NOMBRES_DIRECTIVA;
