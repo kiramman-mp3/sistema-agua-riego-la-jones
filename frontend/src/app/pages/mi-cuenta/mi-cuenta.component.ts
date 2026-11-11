@@ -1,6 +1,6 @@
 import { Component, OnInit, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { ConsultaService, DeudaItem } from '../../core/services/consulta.service';
 import { AuthService } from '../../core/services/auth.service';
 import { FinanzasService } from '../../core/services/finanzas.service';
@@ -25,7 +25,7 @@ interface UsuarioResultado {
 @Component({
   selector: 'app-mi-cuenta',
   standalone: true,
-  imports: [CommonModule, FechaLocalPipe, CurvasNivelComponent, PaginadorComponent],
+  imports: [CommonModule, RouterLink, FechaLocalPipe, CurvasNivelComponent, PaginadorComponent],
   templateUrl: './mi-cuenta.component.html',
   styleUrls: ['./mi-cuenta.component.scss'],
 })

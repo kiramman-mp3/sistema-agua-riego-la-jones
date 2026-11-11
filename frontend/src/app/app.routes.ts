@@ -38,6 +38,13 @@ export const routes: Routes = [
       import('./pages/mi-cuenta/mi-cuenta.component').then((m) => m.MiCuentaComponent),
     canActivate: [authGuard],
   },
+  {
+    path: 'mi-cuenta/lotes',
+    title: 'Mis lotes · Junta La Jones',
+    loadComponent: () =>
+      import('./pages/mi-cuenta/mis-lotes.component').then((m) => m.MisLotesComponent),
+    canActivate: [authGuard],
+  },
   { path: 'login', component: LoginComponent },
   {
     path: 'admin',
