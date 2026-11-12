@@ -1,9 +1,8 @@
-// Carrusel de noticias de la portada: una tarjeta clara sobre la foto, con colores propios para que
-// no dependa del tema ni de la sombra de texto del hero.
+// Carrusel de noticias bajo la portada: una tarjeta clara con colores propios para que no dependa
+// del tema.
 :host {
   display: block;
-  max-width: 44rem;
-  margin-top: clamp(1.75rem, 4vw, 2.5rem);
+  max-width: 62rem;
 }
 
 @mixin recortar($lineas) {
@@ -17,13 +16,18 @@
 $azul: #075985;
 $tinta: #0f172a;
 
+// Con noticias, el título y la tarjeta se separan de la portada; sin ellas el host queda vacío.
+.carrusel__encabezado {
+  margin-top: clamp(2.5rem, 5vw, 3.5rem);
+}
+
 .carrusel {
   overflow: hidden;
   border-radius: 1.25rem;
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
   color: $tinta;
-  text-shadow: none;
 
   &__ventana {
     overflow: hidden;
