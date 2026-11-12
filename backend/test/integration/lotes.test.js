@@ -282,3 +282,15 @@ test('si no se puede guardar la auditoría, el traspaso del lote se revierte com
   const [[titular]] = await db.query('SELECT persona_id FROM persona_lotes WHERE lote_id = ?', [loteId]);
   assert.equal(titular.persona_id, anterior.personaId, 'el lote sigue con su titular anterior');
 });
+
+test('dos ediciones simultáneas de un lote no se pisan (AP-09)', async () => {
+  const loteId = await crearLote({ sectorId: sectorAlto, codigo: 'LJA-088', superficie: 5000 });
+  const editar = (cuerpo) => request(app).put(`/api/lotes/${loteId}`).set(auth(admin)).send(cuerpo);
+  const respuestas = await Promise.all([
+    editar({ referencia_ubicacion: 'Junto al reservorio' }),
+    editar({ observacion: 'Medido con GPS' })
+  ]);
+  assert.deepEqual(respuestas.map((r) => r.status), [200, 200]);
+  const [[lote]] = await db.query('SELECT referencia_ubicacion, observacion FROM lotes WHERE id = ?', [loteId]);
+  assert.deepEqual(lote, { referencia_ubicacion: 'Junto al reservorio', observacion: 'Medido con GPS' });
+});

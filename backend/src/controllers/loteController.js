@@ -249,35 +249,37 @@ async function createLote(req, res) {
 
 async function updateLote(req, res) {
   const { id } = s.idParam.parse(req.params);
-  const datos = loteUpdateSchema.parse(req.body);
+  const datos = s.soloEnviados(loteUpdateSchema.parse(req.body), req.body);
 
-  const [existentes] = await db.query('SELECT * FROM lotes WHERE id = ?', [id]);
-  if (!existentes.length) throw notFound('El lote no existe.');
-  const loteActual = existentes[0];
+  // Se lee y se escribe el lote dentro de la misma transacción, bloqueado: dos ediciones simultáneas no se pisan
+  // y el recálculo de cuotas compara con la superficie vigente. Si cambia la superficie, las cuotas anuales
+  // pendientes se recalculan en esta misma transacción.
+  const { cuotasRecalculadas, nuevoCodigo } = await withTransaction(async (conexion) => {
+    const [existentes] = await conexion.query('SELECT * FROM lotes WHERE id = ? FOR UPDATE', [id]);
+    if (!existentes.length) throw notFound('El lote no existe.');
+    const loteActual = existentes[0];
 
-  if (datos.sector_id && datos.sector_id !== loteActual.sector_id) {
-    const [sectores] = await db.query('SELECT id FROM sectores WHERE id = ? AND activo = TRUE', [datos.sector_id]);
-    if (!sectores.length) throw notFound('El sector seleccionado no existe o está inactivo.');
-  }
+    if (datos.sector_id && datos.sector_id !== loteActual.sector_id) {
+      const [sectores] = await conexion.query('SELECT id FROM sectores WHERE id = ? AND activo = TRUE', [datos.sector_id]);
+      if (!sectores.length) throw notFound('El sector seleccionado no existe o está inactivo.');
+    }
 
-  if (datos.codigo && datos.codigo !== loteActual.codigo) {
-    const [dup] = await db.query('SELECT id FROM lotes WHERE codigo = ? AND id != ?', [datos.codigo, id]);
-    if (dup.length) throw conflict('Este código de lote ya está registrado para otro lote.');
-  }
+    if (datos.codigo && datos.codigo !== loteActual.codigo) {
+      const [dup] = await conexion.query('SELECT id FROM lotes WHERE codigo = ? AND id != ?', [datos.codigo, id]);
+      if (dup.length) throw conflict('Este código de lote ya está registrado para otro lote.');
+    }
 
-  const nuevoSectorId = datos.sector_id !== undefined ? datos.sector_id : loteActual.sector_id;
-  const nuevoCodigo = datos.codigo !== undefined ? datos.codigo : loteActual.codigo;
-  const nuevaSuperficie = datos.superficie_m2 !== undefined ? datos.superficie_m2 : loteActual.superficie_m2;
-  const nuevoAncho = datos.ancho_m !== undefined ? datos.ancho_m : loteActual.ancho_m;
-  const nuevoLargo = datos.largo_m !== undefined ? datos.largo_m : loteActual.largo_m;
-  const nuevaLatitud = datos.latitud_aproximada !== undefined ? datos.latitud_aproximada : loteActual.latitud_aproximada;
-  const nuevaLongitud = datos.longitud_aproximada !== undefined ? datos.longitud_aproximada : loteActual.longitud_aproximada;
-  const nuevoRadio = datos.radio_error_m !== undefined ? datos.radio_error_m : loteActual.radio_error_m;
-  const nuevaReferencia = datos.referencia_ubicacion !== undefined ? datos.referencia_ubicacion : loteActual.referencia_ubicacion;
-  const nuevaObservacion = datos.observacion !== undefined ? datos.observacion : loteActual.observacion;
+    const nuevoSectorId = datos.sector_id !== undefined ? datos.sector_id : loteActual.sector_id;
+    const nuevoCodigo = datos.codigo !== undefined ? datos.codigo : loteActual.codigo;
+    const nuevaSuperficie = datos.superficie_m2 !== undefined ? datos.superficie_m2 : loteActual.superficie_m2;
+    const nuevoAncho = datos.ancho_m !== undefined ? datos.ancho_m : loteActual.ancho_m;
+    const nuevoLargo = datos.largo_m !== undefined ? datos.largo_m : loteActual.largo_m;
+    const nuevaLatitud = datos.latitud_aproximada !== undefined ? datos.latitud_aproximada : loteActual.latitud_aproximada;
+    const nuevaLongitud = datos.longitud_aproximada !== undefined ? datos.longitud_aproximada : loteActual.longitud_aproximada;
+    const nuevoRadio = datos.radio_error_m !== undefined ? datos.radio_error_m : loteActual.radio_error_m;
+    const nuevaReferencia = datos.referencia_ubicacion !== undefined ? datos.referencia_ubicacion : loteActual.referencia_ubicacion;
+    const nuevaObservacion = datos.observacion !== undefined ? datos.observacion : loteActual.observacion;
 
-  // Si cambia la superficie, las cuotas anuales pendientes del lote se recalculan en la misma transacción.
-  const cuotasRecalculadas = await withTransaction(async (conexion) => {
     await conexion.query(
       `UPDATE lotes
        SET sector_id = ?, codigo = ?, superficie_m2 = ?, ancho_m = ?, largo_m = ?,
@@ -304,7 +306,7 @@ async function updateLote(req, res) {
         })
       }
     });
-    return recalculadas;
+    return { cuotasRecalculadas: recalculadas, nuevoCodigo };
   });
 
   const aviso = cuotasRecalculadas.length
