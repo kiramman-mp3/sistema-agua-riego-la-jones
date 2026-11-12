@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const request = require('supertest');
 const app = require('../../src/app');
 const db = require('../../src/config/db');
-const { crearUsuario, auth, crearSector, crearLote } = require('../helpers/fixtures');
+const { crearUsuario, auth, crearSector, crearLote, conceptoId } = require('../helpers/fixtures');
 
 let admin, titular, otro, sector;
 const generar = (cuerpo) => request(app).post('/api/financiero/agua-anual/obligaciones').set(auth(admin)).send(cuerpo);
@@ -89,4 +89,22 @@ test('una cuota emitida con valor plano anterior no se recalcula', async () => {
   const res = await request(app).put(`/api/lotes/${lote.id}`).set(auth(admin)).send({ superficie_m2: 50000 });
   assert.equal(res.status, 200);
   assert.equal((await cuotaDe(lote.id, 2023)).valor_total, 36);
+});
+
+test('el padrón muestra las hectáreas de cada usuario y su valor anual con la tarifa por hectárea vigente', async () => {
+  const sinTarifa = await request(app).get('/api/personas').set(auth(admin)).query({ limit: 50 });
+  assert.equal(sinTarifa.status, 200, JSON.stringify(sinTarifa.body));
+  assert.equal(sinTarifa.body.data.find((p) => p.id === titular.personaId).valor_anual_agua, null, 'sin tarifa vigente no hay valor');
+
+  const tarifa = await request(app).post('/api/financiero/tarifas').set(auth(admin))
+    .send({ concepto_id: await conceptoId('AGUA_ANUAL'), valor: 50, vigencia_desde: '2020-01-01' });
+  assert.equal(tarifa.status, 201, JSON.stringify(tarifa.body));
+
+  const res = await request(app).get('/api/personas').set(auth(admin)).query({ limit: 50 });
+  const fila = (persona) => res.body.data.find((p) => p.id === persona.personaId);
+  // titular: LJA-001 (20.000 m²) + LJA-003 (5.000 m²) = 2,5 ha
+  assert.equal(fila(titular).hectareas_total, 2.5);
+  assert.equal(fila(titular).valor_anual_agua, 125);
+  assert.equal(fila(admin).hectareas_total, 0);
+  assert.equal(fila(admin).valor_anual_agua, 0);
 });

@@ -282,6 +282,32 @@ async function recalcularCuotasPendientesDeLote(conexion, { loteId, superficieM2
   return cambios;
 }
 
+/**
+ * Hectáreas y valor anual del agua que le corresponde a cada usuario según sus lotes y la tarifa por
+ * hectárea vigente en `fecha`. El valor es null si no hay tarifa vigente.
+ * @returns {Promise<Map<number, { hectareas: number, valorAnual: number|null }>>}
+ */
+async function valorAnualPorPersona(conexion, personaIds, fecha) {
+  const resultado = new Map();
+  if (!personaIds.length) return resultado;
+  const concepto = await conceptoPorCodigo(conexion, 'AGUA_ANUAL');
+  const tarifa = await tarifaVigente(conexion, concepto.id, fecha);
+  const [lotes] = await conexion.query(
+    `SELECT pl.persona_id, l.superficie_m2 FROM persona_lotes pl JOIN lotes l ON l.id = pl.lote_id
+     WHERE pl.persona_id IN (?) AND l.activo = TRUE`,
+    [personaIds]
+  );
+  for (const id of personaIds) resultado.set(Number(id), { hectareas: 0, valorAnual: tarifa ? 0 : null });
+  for (const l of lotes) {
+    const ha = hectareasDeLote(l.superficie_m2);
+    if (ha === null) continue;
+    const fila = resultado.get(Number(l.persona_id));
+    fila.hectareas = Math.round((fila.hectareas + ha) * 10000) / 10000;
+    if (tarifa) fila.valorAnual = redondear(fila.valorAnual + cuotaAnualDeLote(l.superficie_m2, Number(tarifa.valor)));
+  }
+  return resultado;
+}
+
 /** Estado del pago anual de agua de un año: obligaciones emitidas, cobradas y pendientes. */
 async function resumenAnualAgua(conexion, anio) {
   const [[fila]] = await conexion.query(
@@ -393,6 +419,6 @@ async function anularObligacionAnualAgua(conexion, { obligacionId, motivo, cuent
 module.exports = {
   crearObligacionManual, anularObligacion, registrarEgreso, anularEgreso, DIAS_PARA_VENCER, vencimientoPorDefecto,
   redondear, conceptoPorCodigo, tarifaVigente, registrarTarifa, registrarPago, anularPago,
-  generarObligacionesAnualesAgua, recalcularCuotasPendientesDeLote, cuotaAnualDeLote, hectareasDeLote, resumenAnualAgua, obligacionesAnualesPendientes, registrarPagoAnualAgua,
+  generarObligacionesAnualesAgua, recalcularCuotasPendientesDeLote, valorAnualPorPersona, cuotaAnualDeLote, hectareasDeLote, resumenAnualAgua, obligacionesAnualesPendientes, registrarPagoAnualAgua,
   anularPagoAnualAgua, anularObligacionAnualAgua
 };
