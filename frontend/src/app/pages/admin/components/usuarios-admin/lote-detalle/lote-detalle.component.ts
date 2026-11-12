@@ -2,6 +2,7 @@ import { Component, computed, input, output } from '@angular/core';
 import { ModalComponent } from '../../../../../shared/ui/modal.component';
 import { LotesMapComponent } from '../../lotes-map/lotes-map.component';
 import { LoteItem } from '../../../../../core/models/api-payloads';
+import { textoSuperficie } from '../../../../../core/utils/superficie';
 
 /** Ficha de un lote: datos del catastro, propietarios vinculados y georreferenciación. */
 @Component({
@@ -29,7 +30,7 @@ import { LoteItem } from '../../../../../core/models/api-payloads';
           </div>
           <div>
             <dt>Superficie</dt>
-            <dd>{{ l.superficie_m2 ? l.superficie_m2 + ' m²' : 'No registrada' }}</dd>
+            <dd>{{ textoSuperficie(l.superficie_m2) }}</dd>
           </div>
         </dl>
 
@@ -105,6 +106,7 @@ import { LoteItem } from '../../../../../core/models/api-payloads';
   `,
 })
 export class LoteDetalleComponent {
+  readonly textoSuperficie = textoSuperficie;
   readonly lote = input.required<LoteItem>();
   readonly cerrar = output<void>();
   readonly editar = output<LoteItem>();

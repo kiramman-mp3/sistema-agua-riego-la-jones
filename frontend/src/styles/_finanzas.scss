@@ -647,6 +647,29 @@
   gap: 0.5rem;
 }
 
+/* Lotes que impiden emitir el pago anual y desglose de la cuota por lote. */
+.lotes-sin-superficie,
+.cuotas-lote ul {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+  }
+}
+
+.cuotas-lote summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
 /* --- Hoja modal: desde abajo en móvil, centrada en escritorio --- */
 .sheet-backdrop {
   position: fixed;

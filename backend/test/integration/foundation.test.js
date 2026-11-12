@@ -112,6 +112,46 @@ test('la migración del grupo de WhatsApp se puede repetir y admite envíos sin 
   assert.equal(tablas.length, 1);
 });
 
+test('la migración de superficie da 1 ha provisional a los lotes sin ella, sin tocar los demás, y se puede repetir', async () => {
+  const { helpers } = require('../../src/db/migrator');
+  const migracion = require('../../database/migrations/031_lotes_superficie_provisional');
+  const { crearSector } = require('../helpers/fixtures');
+  const sectorId = await crearSector('Sector migración superficie');
+  const [vacio] = await db.query("INSERT INTO lotes (sector_id, codigo) VALUES (?, 'MIG-001')", [sectorId]);
+  const [conNota] = await db.query("INSERT INTO lotes (sector_id, codigo, observacion) VALUES (?, 'MIG-002', 'Dueño anterior: Pérez')", [sectorId]);
+  const [medido] = await db.query("INSERT INTO lotes (sector_id, codigo, superficie_m2) VALUES (?, 'MIG-003', 2500)", [sectorId]);
+  const conexion = await db.getConnection();
+  try {
+    await migracion.up(conexion, helpers);
+    await migracion.up(conexion, helpers);
+  } finally {
+    conexion.release();
+  }
+  const leer = async (id) => (await db.query('SELECT superficie_m2, observacion FROM lotes WHERE id = ?', [id]))[0][0];
+  assert.deepEqual(await leer(vacio.insertId), { superficie_m2: 10000, observacion: 'Superficie provisional de demostración: corregir.' });
+  assert.deepEqual(await leer(conNota.insertId), { superficie_m2: 10000, observacion: 'Dueño anterior: Pérez' });
+  assert.deepEqual(await leer(medido.insertId), { superficie_m2: 2500, observacion: null });
+});
+
+test('en producción la migración de superficie no inventa hectáreas: solo deja una nota', async () => {
+  const { helpers } = require('../../src/db/migrator');
+  const migracion = require('../../database/migrations/031_lotes_superficie_provisional');
+  const { crearSector } = require('../helpers/fixtures');
+  const sectorId = await crearSector('Sector migración producción');
+  const [vacio] = await db.query("INSERT INTO lotes (sector_id, codigo) VALUES (?, 'MIG-P01')", [sectorId]);
+  const entorno = process.env.NODE_ENV;
+  const conexion = await db.getConnection();
+  try {
+    process.env.NODE_ENV = 'production';
+    await migracion.up(conexion, helpers);
+  } finally {
+    process.env.NODE_ENV = entorno;
+    conexion.release();
+  }
+  const [[lote]] = await db.query('SELECT superficie_m2, observacion FROM lotes WHERE id = ?', [vacio.insertId]);
+  assert.deepEqual(lote, { superficie_m2: null, observacion: 'Falta registrar la superficie del lote.' });
+});
+
 test('el esquema incluye las columnas que usa el código', async () => {
   const [columnas] = await db.query(`SELECT TABLE_NAME AS t, COLUMN_NAME AS c FROM information_schema.COLUMNS
     WHERE TABLE_SCHEMA = DATABASE()`);
@@ -152,4 +192,18 @@ test('incluye cabeceras de seguridad', async () => {
   const res = await request(app).get('/api/health');
   assert.equal(res.headers['x-content-type-options'], 'nosniff');
   assert.equal(res.headers['x-powered-by'], undefined);
+});
+
+test('dos procesos que migran a la vez no aplican dos veces la misma migración', async () => {
+  await db.query("DELETE FROM schema_migrations WHERE id = '029_intentos_login.js'");
+  const [a, b] = [await db.getConnection(), await db.getConnection()];
+  try {
+    const resultados = await Promise.all([migrate(a, { log: () => {} }), migrate(b, { log: () => {} })]);
+    assert.deepEqual(resultados.flat(), ['029_intentos_login.js'], 'solo uno de los dos la aplica');
+  } finally {
+    a.release();
+    b.release();
+  }
+  const [filas] = await db.query("SELECT id FROM schema_migrations WHERE id = '029_intentos_login.js'");
+  assert.equal(filas.length, 1);
 });

@@ -14,7 +14,9 @@ const listarSchema = z.object({
 const pasadosSchema = z.object({
   tipo: z.enum(TIPOS, { error: 'El tipo debe ser ASAMBLEA o MINGA.' }),
   pagina: z.coerce.number().int().min(1).default(1),
-  limite: z.coerce.number().int().min(1).max(50).default(10)
+  limite: z.coerce.number().int().min(1).max(50).default(10),
+  sector_id: z.coerce.number().int().positive().optional(),
+  subtipo: z.enum(['ORDINARIA', 'EXTRAORDINARIA'], { error: 'El subtipo debe ser ORDINARIA o EXTRAORDINARIA.' }).optional()
 });
 
 const crearSchema = z.object({

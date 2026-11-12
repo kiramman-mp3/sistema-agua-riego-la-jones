@@ -110,7 +110,7 @@
                   }
                 </td>
                 <td data-label="Superficie" class="money">
-                  {{ lote.superficie_m2 ? lote.superficie_m2 + ' m²' : 'N/D' }}
+                  {{ textoSuperficie(lote.superficie_m2, 'N/D') }}
                 </td>
                 <td data-label="Coordenadas">
                   @if (lote.latitud_aproximada && lote.longitud_aproximada) {

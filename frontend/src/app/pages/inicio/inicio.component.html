@@ -17,8 +17,6 @@
           Plataforma oficial para la administración de los usuarios, turnos de agua, convocatorias a
           mingas y consulta pública de obligaciones.
         </p>
-
-        <app-noticias-carrusel />
       </div>
 
       <div class="hero__logo">
@@ -47,6 +45,11 @@
     </div>
   </div>
 </section>
+
+<!-- ÚLTIMAS NOTICIAS: justo debajo de la portada; sin noticias no ocupa lugar -->
+<div class="portal inicio__noticias">
+  <app-noticias-carrusel />
+</div>
 
 <!-- PRÓXIMOS EVENTOS: en el canal, por fecha -->
 @if (proximosEventos.length > 0) {

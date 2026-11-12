@@ -268,11 +268,35 @@ export interface ObligacionAnualAgua {
 /** Resultado de emitir (o simular) el pago anual de agua de un año. */
 export interface ResultadoObligacionesAnuales {
   anio: number;
-  valor: number;
+  /** Valor por hectárea con el que se calculó la cuota de cada lote. */
+  valorHectarea: number;
   usuarios: number;
   generadas: number;
   existentes: number;
+  /** Hectáreas de los lotes por emitir. */
+  hectareas: number;
   total: number;
+  /** Detalle por lote de lo que se emitiría. */
+  lotes: CuotaAnualLote[];
+}
+
+/** Cuota anual de un lote: sus hectáreas por el valor por hectárea. */
+export interface CuotaAnualLote {
+  lote_id: number;
+  lote_codigo: string;
+  sector_nombre: string | null;
+  titular: string;
+  superficie_m2: number;
+  hectareas: number;
+  valor: number;
+}
+
+/** Lote que impide emitir el pago anual porque no tiene superficie (respuesta 409 del servidor). */
+export interface LoteSinSuperficie {
+  id: number;
+  codigo: string;
+  sector_nombre: string | null;
+  titular: string;
 }
 
 /** Obligaciones anuales emitidas, cobradas y pendientes de un año. */
@@ -283,6 +307,10 @@ export interface ResumenAnualAgua {
   pendientes: number;
   total: number;
   recaudado: number;
+  /** Lotes con titular sin superficie: bloquean la emisión. */
+  lotesSinSuperficie?: number;
+  /** Lotes con la superficie provisional de demostración (1 ha) que hay que corregir. */
+  lotesSuperficieProvisional?: number;
 }
 
 export const MESES = [

@@ -58,7 +58,7 @@ test('el inicio muestra quiénes somos, la misión, los sectores, la directiva y
     await expect(page.getByRole('heading', { name: titulo })).toBeVisible();
   }
   await expect(page.getByText(/\d+ lotes/).first()).toBeVisible();
-  await expect(page.getByText('Complejo PROMACERO, Sector La Merced')).toBeVisible();
+  await expect(page.getByText('Complejo PROMACERO, Sector La Merced').first()).toBeVisible();
 });
 
 test('la antigua página de información lleva al inicio y ya no está en el menú', async ({ page }) => {

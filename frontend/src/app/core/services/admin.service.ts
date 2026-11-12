@@ -30,6 +30,13 @@ type EstadoEvento = 'BORRADOR' | 'PROGRAMADO' | 'CONVOCADO' | 'CANCELADO';
  * Las operaciones financieras están en FinanzasService.
  * Los formularios de los componentes aún no están tipados, por eso los cuerpos se reciben como `object`.
  */
+/** Cuotas anuales de agua pendientes de un lote (GET /lotes/:id/deuda-agua). */
+export interface DeudaAguaLote {
+  lote: string;
+  total: number;
+  obligaciones: { id: number; anio: number; valor: number }[];
+}
+
 @Injectable({
   providedIn: 'root',
 })
@@ -144,6 +151,11 @@ export class AdminService {
       `${this.baseUrl}/lotes/${loteId}/vincular-persona`,
       data,
     );
+  }
+
+  /** Cuotas anuales de agua pendientes del lote: lo que pasa al nuevo titular al transferirlo. */
+  getDeudaAguaLote(loteId: number): Observable<RespuestaApi<DeudaAguaLote>> {
+    return this.http.get<RespuestaApi<DeudaAguaLote>>(`${this.baseUrl}/lotes/${loteId}/deuda-agua`);
   }
 
   createSector(data: {

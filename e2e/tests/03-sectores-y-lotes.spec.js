@@ -61,7 +61,7 @@ test('crear un lote valida el código, sugiere uno y registra la ubicación en e
   const fila = await buscarLote(page, codigoLote);
   await expect(fila).toContainText(sector);
   await expect(fila).toContainText('Sin dueño');
-  await expect(fila).toContainText('1500 m²');
+  await expect(fila).toContainText('1.500 m² (0,15 ha)');
 });
 
 test('la ficha del lote muestra su titular, ubicación y referencia', async ({ page }) => {

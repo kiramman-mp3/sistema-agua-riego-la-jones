@@ -48,12 +48,19 @@ router.delete('/sectores/:id', ...soloAdmin, loteController.deleteSector);
  *   post:
  *     tags: [Lotes y Sectores]
  *     summary: Asignar o transferir la titularidad de un lote
+ *     description: La deuda sigue al lote. Las cuotas anuales de agua PENDIENTES del lote (de cualquier año) pasan al nuevo titular; las pagadas quedan como historial de quien las pagó. La respuesta trae deudaTransferida.
+ *     security: [{ bearerAuth: [] }]
+ * /lotes/{loteId}/deuda-agua:
+ *   get:
+ *     tags: [Lotes y Sectores]
+ *     summary: Cuotas anuales de agua pendientes de un lote, con su total (ADMIN). Es lo que pasaría al nuevo titular al transferirlo.
  *     security: [{ bearerAuth: [] }]
  */
 router.get('/sugerir-codigo', ...soloAdmin, loteController.sugerirCodigo);
 router.get('/', verificarToken, loteController.getLotes);
 router.post('/', ...soloAdmin, loteController.createLote);
 router.put('/:id', ...soloAdmin, loteController.updateLote);
+router.get('/:loteId/deuda-agua', ...soloAdmin, loteController.getDeudaAguaLote);
 router.post('/:loteId/vincular-persona', ...soloAdmin, loteController.linkPersonaLote);
 
 module.exports = router;

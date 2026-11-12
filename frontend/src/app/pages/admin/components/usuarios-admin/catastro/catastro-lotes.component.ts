@@ -10,6 +10,7 @@ import { PaginadorComponent } from '../../../../../shared/ui/paginador.component
 import { LoteFormComponent } from '../lote-form/lote-form.component';
 import { LoteDetalleComponent } from '../lote-detalle/lote-detalle.component';
 import { AYUDAS_FORMULARIO } from '../../../../../core/directives/formularios';
+import { textoSuperficie } from '../../../../../core/utils/superficie';
 
 /** Catastro de lotes: búsqueda por código, filtro por sector, paginación en el servidor, alta de lotes y ficha de cada uno. */
 @Component({
@@ -27,6 +28,7 @@ import { AYUDAS_FORMULARIO } from '../../../../../core/directives/formularios';
   templateUrl: './catastro-lotes.component.html',
 })
 export class CatastroLotesComponent implements OnInit {
+  readonly textoSuperficie = textoSuperficie;
   private admin = inject(AdminService);
   private destroyRef = inject(DestroyRef);
 

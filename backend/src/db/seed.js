@@ -26,10 +26,11 @@ const SECTORES = [
 ];
 const REFERENCIAS = ['Junto a la acequia principal', 'Frente a la casa comunal', 'Bajo el reservorio', 'Junto al camino vecinal', 'Cerca de la escuela', 'Al filo de la quebrada', 'Tras la capilla', 'Junto al tanque rompepresión'];
 
-// Pago anual de agua: el valor de cada año es la tarifa AGUA_ANUAL vigente al 1 de enero.
+// Pago anual de agua: se cobra por hectárea. La cuota de cada lote es la tarifa AGUA_ANUAL (por hectárea)
+// vigente al 1 de enero por las hectáreas del lote.
 const TARIFAS_AGUA = [
-  { mesesAtras: 24, valor: 36.00, observacion: 'Tarifa anual aprobada en asamblea general ordinaria' },
-  { mesesAtras: 9, valor: 42.00, observacion: 'Incremento aprobado en asamblea por mantenimiento del canal' }
+  { mesesAtras: 24, valor: 50.00, observacion: 'Tarifa por hectárea aprobada en asamblea general ordinaria' },
+  { mesesAtras: 9, valor: 60.00, observacion: 'Incremento por hectárea aprobado en asamblea por mantenimiento del canal' }
 ];
 const MULTA_ASAMBLEA = 10;
 const MULTA_MINGA = 15;
@@ -194,12 +195,14 @@ async function crearSectoresYLotes(conexion, azar, personas, fechaInicio) {
     const cantidad = azar.probabilidad(0.6) ? 1 : azar.probabilidad(0.75) ? 2 : 3;
     for (let i = 0; i < cantidad; i++) {
       const sector = sectores[azar.probabilidad(0.8) ? persona.sector : azar.entero(0, sectores.length - 1)];
-      const ancho = azar.entero(20, 70);
-      const largo = azar.entero(30, 120);
+      // Lotes de 0,2 a 3 hectáreas (2.000 a 30.000 m²), registrados en m² a múltiplos de 100.
+      const superficie = azar.entero(20, 300) * 100;
+      const ancho = Math.round(Math.sqrt(superficie / azar.entero(15, 40) * 10));
+      const largo = Math.round(superficie / ancho);
       lotes.push({
         persona, sector,
         codigo: `${sector.prefijo}-${String(sector.siguiente++).padStart(3, '0')}`,
-        ancho, largo, superficie: ancho * largo,
+        ancho, largo, superficie,
         lat: sector.lat + (azar.siguiente() - 0.5) * 0.008,
         lng: sector.lng + (azar.siguiente() - 0.5) * 0.008,
         radio: azar.entero(5, 15),
@@ -241,7 +244,7 @@ async function crearTurnos(conexion, lotes, vigenciaDesde) {
     let dia = 1;
     let minuto = INICIO;
     for (const lote of lotesSector) {
-      const duracion = Math.min(3, Math.max(1, Math.ceil(lote.superficie / 2500))) * 60;
+      const duracion = Math.min(3, Math.max(1, Math.ceil(lote.superficie / 10000))) * 60;
       if (minuto + duracion > FIN) { dia++; minuto = INICIO; }
       if (dia > 7) break; // El ramal ya no tiene horas libres en la semana.
       filas.push([lote.persona.id, lote.id, dia, hora(minuto), hora(minuto + duracion), vigenciaDesde, 'ACTIVO']);
@@ -338,6 +341,50 @@ async function pagarPendientes(conexion, azar, persona, fecha, cuentaId) {
   });
 }
 
+/**
+ * Compraventa de terrenos a mitad de la historia: el lote pasa a otro usuario activo. Antes de venderlo,
+ * el titular anterior paga la mitad de sus cuotas anuales ya emitidas (quedan como su historial); el resto
+ * es deuda del lote y pasa al nuevo titular, igual que al transferir un lote desde la aplicación.
+ * @returns {Promise<{ ventas: number, deudaTraspasada: number }>}
+ */
+async function venderLotes(conexion, azar, { lotes, compradores, fecha, cuentaId, personasPorId }) {
+  let ventas = 0;
+  let deudaTraspasada = 0;
+  for (const lote of lotes) {
+    const otros = compradores.filter((p) => p.id !== lote.persona.id);
+    if (!otros.length) continue;
+    const comprador = azar.elegir(otros);
+
+    const [emitidas] = await conexion.query(
+      "SELECT id, fecha_emision FROM obligacion_anual_agua WHERE lote_id = ? AND estado = 'PENDIENTE' AND fecha_emision <= ? ORDER BY periodo_anio",
+      [lote.id, fecha]
+    );
+    for (const o of emitidas) {
+      // La primera venta siempre deja historial pagado, para que la demostración muestre ambos casos.
+      if (!(ventas === 0 && o === emitidas[0]) && !azar.probabilidad(0.5)) continue;
+      const metodo = azar.probabilidad(0.75) ? 'TRANSFERENCIA' : 'DEPOSITO';
+      const dias = Math.max(0, Math.round((Date.parse(`${fecha}T00:00:00Z`) - Date.parse(`${o.fecha_emision}T00:00:00Z`)) / 86400000));
+      await finanzas.registrarPagoAnualAgua(conexion, {
+        personaId: lote.persona.id, obligacionesIds: [o.id], metodo, cuentaId,
+        referencia: `${metodo === 'TRANSFERENCIA' ? 'TRF' : 'DEP'}-${azar.entero(100000, 999999)}`,
+        fechaPago: instante(sumarDias(o.fecha_emision, azar.entero(0, dias)), `${dosDigitos(azar.entero(8, 16))}:${dosDigitos(azar.entero(0, 59))}:00`)
+      });
+    }
+
+    await conexion.query('DELETE FROM persona_lotes WHERE lote_id = ?', [lote.id]);
+    await conexion.query(
+      'INSERT INTO persona_lotes (persona_id, lote_id, tipo_relacion, porcentaje, fecha_desde, observacion) VALUES (?, ?, ?, ?, ?, ?)',
+      [comprador.id, lote.id, 'PROPIETARIO', 100, fecha, `Compraventa del terreno. Dueño anterior: ${lote.persona.apellidos} ${lote.persona.nombres}`]
+    );
+    await conexion.query("UPDATE turnos_riego SET persona_id = ? WHERE lote_id = ? AND estado = 'ACTIVO'", [comprador.id, lote.id]);
+    const deuda = await finanzas.transferirDeudaAnualDeLote(conexion, { loteId: lote.id, personaId: comprador.id });
+    deudaTraspasada += deuda.total;
+    lote.persona = personasPorId.get(comprador.id);
+    ventas++;
+  }
+  return { ventas, deudaTraspasada };
+}
+
 const PROBABILIDAD_PAGO = { PUNTUAL: 0.95, REGULAR: 0.45, MOROSO: 0.12 };
 
 const PROBABILIDAD_PAGO_ANUAL = {
@@ -354,7 +401,7 @@ async function crearPagosAnualesAgua(conexion, azar, personasPorId, hoy, cuentaI
   const anioActual = Number(hoy.slice(0, 4));
 
   const [iniciadas] = await conexion.query(
-    'SELECT id, persona_id, periodo_anio, fecha_emision FROM obligacion_anual_agua WHERE periodo_anio <= ? ORDER BY id',
+    "SELECT id, persona_id, periodo_anio, fecha_emision FROM obligacion_anual_agua WHERE periodo_anio <= ? AND estado = 'PENDIENTE' ORDER BY id",
     [anioActual]
   );
   let pagos = 0;
@@ -516,7 +563,8 @@ async function sembrar(conexion, { hoy = hoyEcuador(), semilla = 2026, totalUsua
 
     log(`[seed] Simulando ${totalMeses} meses de pago anual de agua, eventos y pagos...`);
     const calendario = calendarioEventos(azar, meses, totalMeses - TARIFAS_AGUA[1].mesesAtras - 2);
-    const resumen = { obligacionesAnuales: 0, eventosRealizados: 0, multas: 0, pagos: 0 };
+    const resumen = { obligacionesAnuales: 0, eventosRealizados: 0, multas: 0, pagos: 0, ventas: 0, deudaTraspasada: 0 };
+    const mesDeVentas = Math.floor(totalMeses / 2);
     for (const [i, periodo] of meses.entries()) {
       const retirados = [...retiros].filter(([, mes]) => mes === i).map(([id]) => id);
       if (retirados.length) await conexion.query("UPDATE personas SET estado = 'INACTIVO' WHERE id IN (?)", [retirados]);
@@ -527,6 +575,19 @@ async function sembrar(conexion, { hoy = hoyEcuador(), semilla = 2026, totalUsua
           anio: periodo.anio, fechaEmision: fechaIso(periodo.anio, periodo.mes, 1)
         });
         resumen.obligacionesAnuales += anual.generadas;
+      }
+
+      if (i === mesDeVentas) {
+        // Cerca de uno de cada diez lotes cambia de dueño; compran usuarios que siguen en la Junta.
+        const candidatos = lotes.filter((l) => !retiros.has(l.persona.id));
+        const enVenta = candidatos.filter(() => azar.probabilidad(0.1));
+        if (!enVenta.length && candidatos.length) enVenta.push(candidatos[0]); // Al menos una compraventa en la historia.
+        const compradores = personas.slice(3).filter((p) => !retiros.has(p.id));
+        const venta = await venderLotes(conexion, azar, {
+          lotes: enVenta, compradores, fecha: fechaIso(periodo.anio, periodo.mes, 15), cuentaId: admin.cuentaId, personasPorId
+        });
+        resumen.ventas += venta.ventas;
+        resumen.deudaTraspasada += venta.deudaTraspasada;
       }
 
       const prefijo = `${periodo.anio}-${dosDigitos(periodo.mes)}`;

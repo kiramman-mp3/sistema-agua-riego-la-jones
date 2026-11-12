@@ -33,6 +33,48 @@
     </button>
   </div>
 
+  <!-- FILTROS: valen para los próximos y para los pasados de la pestaña activa -->
+  <form class="filtros-eventos" role="search" (submit)="$event.preventDefault()">
+    @if (tabActivo === 'ASAMBLEA') {
+      <div class="filtros-eventos__grupo" role="group" aria-label="Tipo de asamblea">
+        @for (s of subtipos; track s.etiqueta) {
+          <button
+            type="button"
+            class="ficha"
+            [class.ficha--activa]="filtroActivo.subtipo === s.valor"
+            [attr.aria-pressed]="filtroActivo.subtipo === s.valor"
+            (click)="elegirSubtipo(s.valor)"
+          >
+            {{ s.etiqueta }}
+          </button>
+        }
+      </div>
+    }
+    @if (sectores.length) {
+      <div class="filtros-eventos__campo">
+        <label for="filtro-sector">Sector</label>
+        <select
+          id="filtro-sector"
+          [value]="filtroActivo.sectorId ?? ''"
+          (change)="elegirSector($any($event.target).value)"
+        >
+          <option value="">Todos los sectores</option>
+          @for (s of sectores; track s.id) {
+            <option [value]="s.id">{{ s.nombre }}</option>
+          }
+        </select>
+      </div>
+    }
+    @if (hayFiltro) {
+      <button type="button" class="btn btn--ghost btn--sm" (click)="limpiarFiltro()">
+        <i class="ri-filter-off-line" aria-hidden="true"></i> Limpiar filtros
+      </button>
+    }
+  </form>
+  @if (filtroActivo.sectorId) {
+    <p class="filtros-eventos__nota">Incluye también lo convocado a todos los sectores.</p>
+  }
+
   <div
     role="tabpanel"
     [attr.aria-labelledby]="tabActivo === 'ASAMBLEA' ? 'tab-asamblea' : 'tab-minga'"
@@ -52,7 +94,7 @@
                 [class.evento__tipo--asamblea]="item.tipo !== 'MINGA'"
                 [class.evento__tipo--minga]="item.tipo === 'MINGA'"
               >
-                {{ item.tipo === 'MINGA' ? 'Minga' : 'Asamblea' }}
+                {{ item.tipo === 'MINGA' ? 'Minga' : 'Asamblea ' + etiquetaSubtipo(item) }}
               </p>
               <h2 class="evento__titulo">{{ item.titulo }}</h2>
               <p class="evento__fecha-larga">{{ item.fecha | fechaLocal: 'larga' }}</p>
@@ -62,6 +104,10 @@
                 </li>
                 <li>
                   <i class="ri-map-pin-2-line" aria-hidden="true"></i> Lugar: {{ item.lugar }}
+                </li>
+                <li>
+                  <i class="ri-community-line" aria-hidden="true"></i> Sector:
+                  {{ item.sector_nombre || 'Todos los sectores' }}
                 </li>
                 @if (item.genera_multa_ausencia) {
                   <li class="evento__multa">
@@ -98,11 +144,17 @@
       <app-empty-state
         icono="ri-calendar-line"
         [titulo]="
-          tabActivo === 'ASAMBLEA'
-            ? 'No hay próximas asambleas programadas.'
-            : 'No hay próximas mingas programadas.'
+          hayFiltro
+            ? 'Ninguna próxima convocatoria coincide con el filtro.'
+            : tabActivo === 'ASAMBLEA'
+              ? 'No hay próximas asambleas programadas.'
+              : 'No hay próximas mingas programadas.'
         "
-        mensaje="Cuando la directiva convoque una, aparecerá aquí."
+        [mensaje]="
+          hayFiltro
+            ? 'Pruebe con otro sector o quite los filtros.'
+            : 'Cuando la directiva convoque una, aparecerá aquí.'
+        "
       />
     }
 
@@ -147,11 +199,20 @@
                         item.fecha | fechaLocal: 'larga'
                       }}</time>
                     </div>
-                    @if (item.lugar) {
-                      <p class="pasado__lugar">
-                        <i class="ri-map-pin-2-line" aria-hidden="true"></i> {{ item.lugar }}
-                      </p>
-                    }
+                    <p class="pasado__lugar">
+                      @if (item.tipo === 'ASAMBLEA') {
+                        <span class="pasado__etiqueta">{{ etiquetaSubtipo(item) }}</span>
+                      }
+                      <span class="pasado__etiqueta">{{
+                        item.sector_nombre || 'Todos los sectores'
+                      }}</span>
+                      @if (item.lugar) {
+                        <span
+                          ><i class="ri-map-pin-2-line" aria-hidden="true"></i>
+                          {{ item.lugar }}</span
+                        >
+                      }
+                    </p>
                     @if (item.descripcion) {
                       <p class="pasado__resumen">{{ item.descripcion }}</p>
                     }
@@ -199,11 +260,17 @@
             <app-empty-state
               icono="ri-history-line"
               [titulo]="
-                tabActivo === 'ASAMBLEA'
-                  ? 'Aún no hay asambleas pasadas.'
-                  : 'Aún no hay mingas pasadas.'
+                hayFiltro
+                  ? 'Ninguna coincide con el filtro.'
+                  : tabActivo === 'ASAMBLEA'
+                    ? 'Aún no hay asambleas pasadas.'
+                    : 'Aún no hay mingas pasadas.'
               "
-              mensaje="Las que se realicen aparecerán aquí."
+              [mensaje]="
+                hayFiltro
+                  ? 'Pruebe con otro sector o quite los filtros.'
+                  : 'Las que se realicen aparecerán aquí.'
+              "
             />
           }
 

@@ -61,9 +61,11 @@ Los endpoints protegidos requieren autenticación mediante **JSON Web Tokens (JW
 | :--- | :--- | :--- | :--- |
 | `GET` | `/lotes/sectores` | Público / Autenticado | Catálogo de sectores de riego en Patate. |
 | `POST` | `/lotes/sectores` | ADMIN | Crear nuevo sector. |
+| `PUT` | `/lotes/:id` | ADMIN | Edita un lote. La superficie (`superficie_m2`, en m²) es obligatoria al crear y, al editar, no puede quedar vacía. Si cambia, se recalculan en la misma transacción las cuotas anuales de agua `PENDIENTE` del lote emitidas por hectárea (la respuesta trae `cuotasRecalculadas`); las pagadas y las anteriores de cuota plana no cambian. |
 | `GET` | `/lotes` | Autenticado | Lista de lotes con coordenadas (`latitud_aproximada`, `longitud_aproximada`, `radio_error_m`) y propietarios (`?sector_id=...&busqueda=...`). Con `?page=1&limit=25` (máximo 100) devuelve una página y el total en `pagination`; sin `page`, la lista completa. Un usuario solo recibe sus lotes. |
 | `POST` | `/lotes` | ADMIN / SECRETARIO | Crear terreno y asociarlo a un usuario (`persona_lotes`). |
-| `POST` | `/lotes/:loteId/vincular-persona` | ADMIN / SECRETARIO | Vincular coppropietario o representante a un lote existente. |
+| `POST` | `/lotes/:loteId/vincular-persona` | ADMIN / SECRETARIO | Asigna o transfiere la titularidad de un lote. La deuda sigue al lote: las cuotas anuales de agua `PENDIENTE` del lote, de cualquier año, pasan al nuevo titular; las pagadas quedan como historial de quien las pagó. La respuesta y la auditoría traen `deudaTransferida` (`obligaciones`, `total`). |
+| `GET` | `/lotes/:loteId/deuda-agua` | ADMIN | Cuotas anuales de agua pendientes del lote con su total: lo que pasaría al nuevo titular al transferirlo. |
 
 ---
 
@@ -115,7 +117,8 @@ Los endpoints protegidos requieren autenticación mediante **JSON Web Tokens (JW
 | `POST` | `/financiero/obligaciones/:id/anular` | ADMIN / TESORERO | Anulación de obligación con motivo y registro de auditoría. |
 | `POST` | `/financiero/pagos` | ADMIN / TESORERO | **REGISTRO DE PAGO COMPLETO (Transacción sin pagos parciales):** Recibe array de `obligacionesIds`, valida propiedad y cancela las obligaciones en una transacción atómica. |
 | `GET` | `/financiero/pagos` | Autenticado | Historial de pagos y recaudación realizada. |
-| `POST` | `/financiero/agua-anual/obligaciones` | ADMIN | **Pago anual de agua:** genera la obligación del año (`anio`, `valor_total`) para cada usuario activo. Es idempotente: las obligaciones ya emitidas del año se respetan. |
+| `POST` | `/financiero/agua-anual/obligaciones` | ADMIN | **Pago anual de agua:** genera la obligación del año por cada lote de un usuario activo. La cuota del lote es el valor por hectárea (`valor_hectarea`, o la tarifa `AGUA_ANUAL` vigente al 1 de enero) por sus hectáreas (`superficie_m2 / 10000`), redondeada al centavo. Con `simular: true` devuelve el total y el detalle por lote sin escribir. Si algún lote por emitir no tiene superficie responde `409` con `lotes_sin_superficie` y no emite ninguna. Es idempotente: las obligaciones ya emitidas del año se respetan. |
+| `GET` | `/financiero/agua-anual/resumen?anio=` | ADMIN | Estado del año: emitidas, pagadas, pendientes, total y recaudado; además `lotesSinSuperficie` (bloquean la emisión) y `lotesSuperficieProvisional` (lotes con la superficie de demostración que hay que corregir). |
 | `GET` | `/financiero/agua-anual/obligaciones/:personaId` | ADMIN | Obligaciones anuales de agua pendientes de un usuario, de la más antigua a la más reciente. |
 | `POST` | `/financiero/agua-anual/pagos` | ADMIN | Registra el pago (solo `TRANSFERENCIA` o `DEPOSITO`, con referencia) de una o varias obligaciones anuales de agua en una transacción atómica. |
 | `GET` | `/financiero/egresos` | Autenticado | Gastos y compras realizadas por la Junta. |

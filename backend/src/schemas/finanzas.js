@@ -83,10 +83,10 @@ const egresoSchema = z.object({
 
 
 const personaIdParam = z.object({ personaId: s.id });
-/** Sin valor_total se usa la tarifa del concepto AGUA_ANUAL vigente al 1 de enero del año. */
+/** Sin valor_hectarea se usa la tarifa por hectárea del concepto AGUA_ANUAL vigente al 1 de enero del año. */
 const generarAnualAguaSchema = z.object({
   anio,
-  valor_total: z.preprocess((v) => (v === '' || v === null ? undefined : v), s.montoPositivo.optional()),
+  valor_hectarea: z.preprocess((v) => (v === '' || v === null ? undefined : v), s.montoPositivo.optional()),
   simular: z.boolean().default(false)
 });
 const resumenAnualAguaQuery = z.object({ anio: anio.optional() });

@@ -213,11 +213,12 @@ export class FinanzasService {
 
   /**
    * Emite la obligación anual de agua del año para los usuarios activos con lote; repetirlo no duplica.
-   * Con `simular` solo calcula cuántas se emitirían. Sin `valor_total` usa la tarifa AGUA_ANUAL del 1 de enero.
+   * La cuota de cada lote es el valor por hectárea por sus hectáreas. Con `simular` solo calcula lo que se
+   * emitiría. Sin `valor_hectarea` usa la tarifa AGUA_ANUAL (por hectárea) del 1 de enero.
    */
   generarObligacionesAnualesAgua(payload: {
     anio: number;
-    valor_total?: number | null;
+    valor_hectarea?: number | null;
     simular?: boolean;
   }): Observable<Respuesta<ResultadoObligacionesAnuales>> {
     return this.http.post<Respuesta<ResultadoObligacionesAnuales>>(

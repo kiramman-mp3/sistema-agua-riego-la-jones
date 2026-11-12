@@ -89,6 +89,24 @@ test.describe('el administrador cobra y el usuario lo ve', () => {
     await dialogo(page).getByRole('button', { name: 'Registrar pago' }).click();
     await expect(page.locator('strong', { hasText: /Pago .+ registrado/ })).toBeVisible();
   });
+
+  // Los datos sembrados dejan al usuario con el agua del año pendiente: se cobra para que quede al día.
+  test('cobrar el agua anual pendiente del usuario', async ({ page }) => {
+    const { usuario } = credenciales();
+    await page.goto('/admin/cobros/cobrar');
+    await page.getByLabel('Buscar usuario').fill(usuario.cedula);
+    await page.getByRole('list', { name: 'Usuarios encontrados' }).getByRole('button').first().click();
+    await page.getByRole('tab', { name: /Agua anual/ }).click();
+    const pendientes = page.getByRole('list', { name: /Pago anual de agua pendiente/ }).getByRole('checkbox');
+    const cantidad = await pendientes.count();
+    test.skip(cantidad === 0, 'El usuario no tiene agua anual pendiente.');
+    for (let i = 0; i < cantidad; i += 1) await pendientes.nth(i).check();
+    await page.getByRole('radio', { name: 'Transferencia' }).click();
+    await page.getByLabel('Número de referencia').fill(`E2E-AGUA-${Date.now()}`);
+    await page.getByRole('button', { name: 'Registrar pago' }).click();
+    await dialogo(page).getByRole('button', { name: 'Registrar pago' }).click();
+    await expect(page.locator('strong', { hasText: /Pago .+ registrado/ })).toBeVisible();
+  });
 });
 
 test.describe('después del cobro', () => {
