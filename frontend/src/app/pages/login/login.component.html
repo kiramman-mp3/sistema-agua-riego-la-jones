@@ -70,7 +70,7 @@
         <p class="form-legend"><span class="req" aria-hidden="true">*</span> Campos obligatorios</p>
         <div class="form-group">
           <label for="usuario"
-            ><i aria-hidden="true" class="ri-user-line"></i> Usuario o Cédula
+            ><i aria-hidden="true" class="ri-user-line"></i> Cédula
             <span class="req" aria-hidden="true">*</span></label
           >
           <input
@@ -81,6 +81,8 @@
             [(ngModel)]="usuario"
             name="usuario"
             autocomplete="username"
+            inputmode="numeric"
+            maxlength="10"
             required
           />
         </div>

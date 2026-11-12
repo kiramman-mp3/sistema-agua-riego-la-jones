@@ -109,7 +109,7 @@ test.describe('primer ingreso del usuario nuevo', () => {
     await page.goto('/mi-cuenta');
     await expect(page).toHaveURL(/\/login/);
     // Según el estado guardado, el formulario vuelve a pedir la cédula o sigue en el cambio de contraseña.
-    const campoUsuario = page.getByLabel('Usuario o Cédula');
+    const campoUsuario = page.getByLabel('Cédula', { exact: false });
     const campoTemporal = page.getByLabel('Contraseña temporal');
     await expect(campoUsuario.or(campoTemporal)).toBeVisible();
     if (await campoUsuario.isVisible()) {
@@ -285,7 +285,7 @@ test.describe('restablecimiento y baja', () => {
 });
 
 async function iniciarSesionEn(page, cedula, password) {
-  await page.getByLabel('Usuario o Cédula').fill(cedula);
+  await page.getByLabel('Cédula', { exact: false }).fill(cedula);
   await page.getByLabel(/^\s*Contraseña\s*\*?\s*$/).fill(password);
   await page.getByRole('button', { name: 'Ingresar al Sistema' }).click();
 }

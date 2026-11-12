@@ -67,6 +67,11 @@ export class LoginComponent implements OnInit {
       this.errorMensaje = 'Por favor ingrese cédula y contraseña.';
       return;
     }
+    // Se ingresa solo con la cédula: no existen nombres de usuario.
+    if (!/^\d{10}$/.test(this.usuario.trim())) {
+      this.errorMensaje = 'Ingrese su número de cédula de 10 dígitos, sin espacios ni guiones.';
+      return;
+    }
 
     this.cargando = true;
     this.errorMensaje = '';

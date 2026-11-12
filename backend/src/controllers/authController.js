@@ -22,7 +22,8 @@ const DIAS_CONSERVAR_INTENTOS = 30;
 const MENSAJE_CREDENCIALES = 'Credenciales incorrectas o la cuenta no está habilitada o se encuentra bloqueada temporalmente.';
 
 const loginSchema = z.object({
-  cedula: z.string().trim().min(1, 'Ingrese su cédula.').max(20),
+  // Se ingresa solo con la cédula (10 dígitos): no existen nombres de usuario.
+  cedula: z.string().trim().min(1, 'Ingrese su cédula.').regex(/^\d{10}$/, 'Ingrese su número de cédula de 10 dígitos.'),
   password: z.string().min(1, 'Ingrese su contraseña.').max(200),
   // Recordar la sesión al cerrar el navegador (la cookie dura lo que el token).
   recordar: z.boolean().default(true)
