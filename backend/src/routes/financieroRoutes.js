@@ -139,7 +139,7 @@ router.get('/historial', ...soloAdmin, financieroController.getHistorialAnual);
  * /financiero/agua-anual/obligaciones:
  *   post:
  *     tags: [Gestión Financiera]
- *     summary: Emitir (o simular con simular=true) la obligación anual de agua del año para los usuarios activos con lote (ADMIN). Sin valor_total usa la tarifa AGUA_ANUAL vigente al 1 de enero.
+ *     summary: Emitir (o simular con simular=true) la obligación anual de agua del año para los usuarios activos con lote (ADMIN). La cuota de cada lote es el valor por hectárea por sus hectáreas (m² / 10.000). Sin valor_hectarea usa la tarifa AGUA_ANUAL (por hectárea) vigente al 1 de enero.
  *     security: [{ bearerAuth: [] }]
  *     requestBody:
  *       required: true
@@ -150,10 +150,11 @@ router.get('/historial', ...soloAdmin, financieroController.getHistorialAnual);
  *             required: [anio]
  *             properties:
  *               anio: { type: integer, example: 2026 }
- *               valor_total: { type: number, example: 42 }
+ *               valor_hectarea: { type: number, example: 55 }
  *               simular: { type: boolean, example: false }
  *     responses:
  *       '201': { description: Obligaciones generadas; las ya existentes del año se respetan }
+ *       '409': { description: Hay lotes sin superficie; la respuesta incluye lotes_sin_superficie y no se emite ninguna }
  * /financiero/agua-anual/resumen:
  *   get:
  *     tags: [Gestión Financiera]

@@ -127,6 +127,7 @@
               <th>Sector</th>
               <th>Contacto</th>
               <th>Lotes</th>
+              <th class="num">Agua al año</th>
               <th>Estado</th>
               <th><span class="sr-only">Acciones</span></th>
             </tr>
@@ -187,6 +188,18 @@
                     </button>
                   } @else {
                     <span class="pill pill--warning">Sin lotes</span>
+                  }
+                </td>
+                <td data-label="Agua al año" class="num cell-nowrap">
+                  @if ((u.hectareas_total ?? 0) > 0) {
+                    @if (u.valor_anual_agua !== null && u.valor_anual_agua !== undefined) {
+                      <span class="money">{{ u.valor_anual_agua | moneda }}</span>
+                    } @else {
+                      <span class="text-muted">Sin tarifa</span>
+                    }
+                    <small class="text-muted">{{ u.hectareas_total | number: '1.2-4' }} ha</small>
+                  } @else {
+                    <span class="text-muted">—</span>
                   }
                 </td>
                 <td data-label="Estado" class="cell-nowrap">

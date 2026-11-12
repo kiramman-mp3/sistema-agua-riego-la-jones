@@ -32,7 +32,7 @@ test('los usuarios tienen cédulas ecuatorianas válidas y únicas', async () =>
   assert.ok(personas.every((p) => esCedulaValida(p.cedula)));
 });
 
-test('el pago anual de cada año usa la tarifa AGUA_ANUAL vigente al 1 de enero y no hay cuotas mensuales', async () => {
+test('el pago anual de cada año es la tarifa por hectárea AGUA_ANUAL vigente al 1 de enero por las hectáreas del lote', async () => {
   const [tarifas] = await db.query(
     "SELECT t.valor, t.vigencia_desde, t.vigencia_hasta FROM tarifas t JOIN conceptos_cobro c ON c.id = t.concepto_id AND c.codigo = 'AGUA_ANUAL' ORDER BY t.vigencia_desde"
   );
@@ -40,9 +40,10 @@ test('el pago anual de cada año usa la tarifa AGUA_ANUAL vigente al 1 de enero 
   assert.equal(tarifas[0].vigencia_hasta, '2025-05-31');
   const fueraDeTarifa = await uno(
     `SELECT COUNT(*) AS n FROM obligacion_anual_agua o
+     JOIN lotes l ON l.id = o.lote_id
      JOIN conceptos_cobro c ON c.codigo = 'AGUA_ANUAL'
      JOIN tarifas t ON t.concepto_id = c.id AND MAKEDATE(o.periodo_anio, 1) BETWEEN t.vigencia_desde AND COALESCE(t.vigencia_hasta, '9999-12-31')
-     WHERE o.valor_total <> t.valor`
+     WHERE o.valor_hectarea <> t.valor OR o.valor_total <> ROUND(l.superficie_m2 / 10000 * t.valor, 2)`
   );
   assert.equal(fueraDeTarifa.n, 0);
   assert.ok(resultado.obligacionesAnuales > 0);

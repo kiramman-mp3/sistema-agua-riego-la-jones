@@ -175,48 +175,136 @@ async function anularEgreso(conexion, { egresoId, motivo, cuentaId }) {
   return { egreso };
 }
 
+const M2_POR_HECTAREA = 10000;
+
+/** Hectáreas de un lote a partir de sus m²; null si no tiene superficie válida. */
+function hectareasDeLote(superficieM2) {
+  const m2 = Number(superficieM2);
+  return superficieM2 != null && m2 > 0 ? m2 / M2_POR_HECTAREA : null;
+}
+
+/** Cuota anual de un lote: valor por hectárea por las hectáreas del lote, redondeada al centavo. */
+function cuotaAnualDeLote(superficieM2, valorHectarea) {
+  const ha = hectareasDeLote(superficieM2);
+  return ha === null ? null : redondear(ha * valorHectarea);
+}
+
 /**
- * Valor del pago anual de un año: el indicado o, si no se indica, la tarifa del concepto
+ * Valor por hectárea del pago anual de un año: el indicado o, si no se indica, la tarifa del concepto
  * AGUA_ANUAL vigente al 1 de enero de ese año (Ajustes → Tarifas).
  */
-async function valorAnualAgua(conexion, anio, valorTotal) {
-  if (valorTotal != null) return redondear(valorTotal);
+async function valorHectareaAgua(conexion, anio, valorHectarea) {
+  if (valorHectarea != null) return redondear(valorHectarea);
   const concepto = await conceptoPorCodigo(conexion, 'AGUA_ANUAL');
   const tarifa = await tarifaVigente(conexion, concepto.id, `${anio}-01-01`);
-  if (!tarifa) throw conflict(`No hay una tarifa del pago anual de agua vigente al 1 de enero de ${anio}. Regístrela en Tarifas o indique el valor.`);
+  if (!tarifa) throw conflict(`No hay una tarifa por hectárea del pago anual de agua vigente al 1 de enero de ${anio}. Regístrela en Tarifas o indique el valor.`);
   return redondear(tarifa.valor);
 }
 
 /**
  * Pago anual de agua: genera la obligación del año por cada lote activo vinculado a un usuario activo.
+ * La cuota de cada lote es el valor por hectárea por sus hectáreas (m² / 10.000), redondeada al centavo.
  * Es idempotente: las obligaciones ya emitidas de ese año y lote se respetan (clave única lote/año)
- * y conservan su valor. Con `simular` solo calcula cuántas se emitirían.
- * @returns {Promise<{ anio: number, valor: number, lotes: number, generadas: number, existentes: number, total: number }>}
+ * y conservan su valor. Con `simular` solo calcula cuántas se emitirían y su detalle por lote.
+ * Si algún lote por emitir no tiene superficie, no se emite ninguna y se responde 409 con esa lista.
+ * @returns {Promise<{ anio: number, valorHectarea: number, usuarios: number, generadas: number, existentes: number, hectareas: number, total: number, lotes: Array }>}
  */
-async function generarObligacionesAnualesAgua(conexion, { anio, valorTotal = null, simular = false, fechaEmision = null }) {
-  const valor = await valorAnualAgua(conexion, anio, valorTotal);
+async function generarObligacionesAnualesAgua(conexion, { anio, valorHectarea = null, simular = false, fechaEmision = null }) {
+  const valor = await valorHectareaAgua(conexion, anio, valorHectarea);
   const [candidatos] = await conexion.query(
-    `SELECT pl.persona_id, pl.lote_id, (o.id IS NOT NULL) AS ya_emitida
+    `SELECT pl.persona_id, pl.lote_id, l.codigo AS lote_codigo, l.superficie_m2, s.nombre AS sector_nombre,
+            CONCAT(p.nombres, ' ', p.apellidos) AS titular, (o.id IS NOT NULL) AS ya_emitida
      FROM persona_lotes pl
      JOIN personas p ON p.id = pl.persona_id
      JOIN lotes l ON l.id = pl.lote_id
+     LEFT JOIN sectores s ON s.id = l.sector_id
      LEFT JOIN obligacion_anual_agua o ON o.lote_id = pl.lote_id AND o.periodo_anio = ?
      WHERE p.estado = 'ACTIVO' AND l.activo = TRUE
      ORDER BY pl.persona_id, pl.lote_id`,
     [anio]
   );
   const nuevos = candidatos.filter((c) => !Number(c.ya_emitida));
+  const sinSuperficie = nuevos.filter((c) => hectareasDeLote(c.superficie_m2) === null);
+  if (sinSuperficie.length) {
+    throw conflict(
+      'No se puede generar el cobro anual porque existen lotes sin su superficie.',
+      {
+        lotes_sin_superficie: sinSuperficie.map((c) => ({
+          id: c.lote_id, codigo: c.lote_codigo, sector_nombre: c.sector_nombre, titular: c.titular
+        }))
+      }
+    );
+  }
+
+  const lotes = nuevos.map((c) => ({
+    persona_id: c.persona_id, lote_id: c.lote_id, lote_codigo: c.lote_codigo, sector_nombre: c.sector_nombre,
+    titular: c.titular, superficie_m2: Number(c.superficie_m2),
+    hectareas: hectareasDeLote(c.superficie_m2), valor: cuotaAnualDeLote(c.superficie_m2, valor)
+  }));
   const resultado = {
-    anio, valor, usuarios: candidatos.length, generadas: nuevos.length,
-    existentes: candidatos.length - nuevos.length, total: redondear(nuevos.length * valor)
+    anio, valorHectarea: valor, usuarios: candidatos.length, generadas: nuevos.length,
+    existentes: candidatos.length - nuevos.length,
+    hectareas: Math.round(lotes.reduce((suma, l) => suma + l.hectareas, 0) * 10000) / 10000,
+    total: redondear(lotes.reduce((suma, l) => suma + l.valor, 0)),
+    lotes
   };
   if (simular || !nuevos.length) return resultado;
 
   const emision = fechaEmision ?? `${anio}-01-01`;
   await conexion.query(
-    `INSERT INTO obligacion_anual_agua (persona_id, lote_id, periodo_anio, valor_total, estado, fecha_emision, fecha_vencimiento) VALUES ?`,
-    [nuevos.map((c) => [c.persona_id, c.lote_id, anio, valor, 'PENDIENTE', emision, `${anio}-12-31`])]
+    `INSERT INTO obligacion_anual_agua (persona_id, lote_id, periodo_anio, valor_total, valor_hectarea, superficie_m2, estado, fecha_emision, fecha_vencimiento) VALUES ?`,
+    [lotes.map((l) => [l.persona_id, l.lote_id, anio, l.valor, valor, l.superficie_m2, 'PENDIENTE', emision, `${anio}-12-31`])]
   );
+  return resultado;
+}
+
+/**
+ * Recalcula las cuotas anuales PENDIENTES de un lote tras corregir su superficie. Solo toca las
+ * emitidas por hectárea (con valor_hectarea guardado); las pagadas, anuladas y las de cuota plana anterior
+ * no cambian. Debe correr dentro de la misma transacción que el cambio de superficie.
+ * @returns {Promise<Array<{ id: number, anio: number, valorAnterior: number, valorNuevo: number }>>}
+ */
+async function recalcularCuotasPendientesDeLote(conexion, { loteId, superficieM2 }) {
+  const [pendientes] = await conexion.query(
+    `SELECT id, periodo_anio, valor_total, valor_hectarea FROM obligacion_anual_agua
+     WHERE lote_id = ? AND estado = 'PENDIENTE' AND valor_hectarea IS NOT NULL FOR UPDATE`,
+    [loteId]
+  );
+  const cambios = [];
+  for (const o of pendientes) {
+    const valorNuevo = cuotaAnualDeLote(superficieM2, Number(o.valor_hectarea));
+    if (valorNuevo === null) continue;
+    await conexion.query('UPDATE obligacion_anual_agua SET valor_total = ?, superficie_m2 = ? WHERE id = ?', [valorNuevo, superficieM2, o.id]);
+    if (valorNuevo !== Number(o.valor_total)) {
+      cambios.push({ id: o.id, anio: o.periodo_anio, valorAnterior: Number(o.valor_total), valorNuevo });
+    }
+  }
+  return cambios;
+}
+
+/**
+ * Hectáreas y valor anual del agua que le corresponde a cada usuario según sus lotes y la tarifa por
+ * hectárea vigente en `fecha`. El valor es null si no hay tarifa vigente.
+ * @returns {Promise<Map<number, { hectareas: number, valorAnual: number|null }>>}
+ */
+async function valorAnualPorPersona(conexion, personaIds, fecha) {
+  const resultado = new Map();
+  if (!personaIds.length) return resultado;
+  const concepto = await conceptoPorCodigo(conexion, 'AGUA_ANUAL');
+  const tarifa = await tarifaVigente(conexion, concepto.id, fecha);
+  const [lotes] = await conexion.query(
+    `SELECT pl.persona_id, l.superficie_m2 FROM persona_lotes pl JOIN lotes l ON l.id = pl.lote_id
+     WHERE pl.persona_id IN (?) AND l.activo = TRUE`,
+    [personaIds]
+  );
+  for (const id of personaIds) resultado.set(Number(id), { hectareas: 0, valorAnual: tarifa ? 0 : null });
+  for (const l of lotes) {
+    const ha = hectareasDeLote(l.superficie_m2);
+    if (ha === null) continue;
+    const fila = resultado.get(Number(l.persona_id));
+    fila.hectareas = Math.round((fila.hectareas + ha) * 10000) / 10000;
+    if (tarifa) fila.valorAnual = redondear(fila.valorAnual + cuotaAnualDeLote(l.superficie_m2, Number(tarifa.valor)));
+  }
   return resultado;
 }
 
@@ -331,6 +419,6 @@ async function anularObligacionAnualAgua(conexion, { obligacionId, motivo, cuent
 module.exports = {
   crearObligacionManual, anularObligacion, registrarEgreso, anularEgreso, DIAS_PARA_VENCER, vencimientoPorDefecto,
   redondear, conceptoPorCodigo, tarifaVigente, registrarTarifa, registrarPago, anularPago,
-  generarObligacionesAnualesAgua, resumenAnualAgua, obligacionesAnualesPendientes, registrarPagoAnualAgua,
+  generarObligacionesAnualesAgua, recalcularCuotasPendientesDeLote, valorAnualPorPersona, cuotaAnualDeLote, hectareasDeLote, resumenAnualAgua, obligacionesAnualesPendientes, registrarPagoAnualAgua,
   anularPagoAnualAgua, anularObligacionAnualAgua
 };

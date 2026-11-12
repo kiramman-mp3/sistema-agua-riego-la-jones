@@ -26,17 +26,17 @@ before(async () => {
 after(closeDatabase);
 
 test('solo la directiva genera, consulta y registra pagos anuales de agua', async () => {
-  assert.equal((await request(app).post('/api/financiero/agua-anual/obligaciones').send({ anio: 2026, valor_total: 10 })).status, 401);
-  assert.equal((await generar({ anio: 2026, valor_total: 10 }, usuario)).status, 403);
+  assert.equal((await request(app).post('/api/financiero/agua-anual/obligaciones').send({ anio: 2026, valor_hectarea: 10 })).status, 401);
+  assert.equal((await generar({ anio: 2026, valor_hectarea: 10 }, usuario)).status, 403);
   assert.equal((await pendientes(usuario.personaId, usuario)).status, 403);
   assert.equal((await pagar({ persona_id: usuario.personaId, obligacionesIds: [1], metodo: 'DEPOSITO', referencia: 'D-1' }, usuario)).status, 403);
 });
 
 test('valida el año y el valor al generar, y no emite años futuros', async () => {
-  for (const cuerpo of [{ valor_total: 10 }, { anio: 1999, valor_total: 10 }, { anio: 2026, valor_total: 0 }, { anio: 2026, valor_total: 'x' }]) {
+  for (const cuerpo of [{ valor_hectarea: 10 }, { anio: 1999, valor_hectarea: 10 }, { anio: 2026, valor_hectarea: 0 }, { anio: 2026, valor_hectarea: 'x' }]) {
     assert.equal((await generar(cuerpo)).status, 400, JSON.stringify(cuerpo));
   }
-  const futuro = await generar({ anio: ANIO_ACTUAL + 1, valor_total: 10 });
+  const futuro = await generar({ anio: ANIO_ACTUAL + 1, valor_hectarea: 10 });
   assert.equal(futuro.status, 400);
   assert.match(futuro.body.message, /futuros/);
   const sinTarifa = await generar({ anio: 2024 });
@@ -50,7 +50,9 @@ test('sin valor usa la tarifa AGUA_ANUAL vigente al 1 de enero y simular no escr
   assert.equal(tarifa.status, 201, JSON.stringify(tarifa.body));
   const simulacion = await generar({ anio: 2023, simular: true });
   assert.equal(simulacion.status, 200);
-  assert.deepEqual(simulacion.body.data, { anio: 2023, valor: 36, usuarios: 2, generadas: 2, existentes: 0, total: 72 });
+  const { lotes, ...resumen } = simulacion.body.data;
+  assert.deepEqual(resumen, { anio: 2023, valorHectarea: 36, usuarios: 2, generadas: 2, existentes: 0, hectareas: 2, total: 72 });
+  assert.equal(lotes.length, 2, 'la simulación detalla cada lote');
   const [[{ antes }]] = await db.query('SELECT COUNT(*) AS antes FROM obligacion_anual_agua WHERE periodo_anio = 2023');
   assert.equal(antes, 0);
 });
@@ -60,12 +62,12 @@ test('genera una obligación por usuario activo con lote y repetir no duplica', 
   await crearPersona({ nombres: 'Sin lote' });
   const activos = 2; // usuario y otro: el administrador, el inactivo y quien no tiene lote no pagan agua.
 
-  const primera = await generar({ anio: 2026, valor_total: 10 });
+  const primera = await generar({ anio: 2026, valor_hectarea: 10 });
   assert.equal(primera.status, 201, JSON.stringify(primera.body));
   assert.equal(primera.body.data.generadas, activos);
   assert.equal(primera.body.data.existentes, 0);
 
-  const segunda = await generar({ anio: 2026, valor_total: 25 });
+  const segunda = await generar({ anio: 2026, valor_hectarea: 25 });
   assert.equal(segunda.status, 201);
   assert.equal(segunda.body.data.generadas, 0);
   assert.equal(segunda.body.data.existentes, activos);
@@ -96,7 +98,7 @@ test('el usuario ve su pago anual pendiente en su estado de cuenta', async () =>
 });
 
 test('lista las obligaciones pendientes del usuario, de la más antigua a la más reciente', async () => {
-  await generar({ anio: 2025, valor_total: 8 });
+  await generar({ anio: 2025, valor_hectarea: 8 });
   const res = await pendientes(usuario.personaId);
   assert.equal(res.status, 200);
   assert.deepEqual(res.body.data.map((o) => o.periodo_anio), [2025, 2026]);
@@ -178,7 +180,7 @@ test('el balance, el historial y el panel suman los pagos anuales y la cartera p
 });
 
 test('una obligación anual de un año ya cerrado cuenta como cartera vencida', async () => {
-  await generar({ anio: 2024, valor_total: 5 });
+  await generar({ anio: 2024, valor_hectarea: 5 });
   const vencido = Number((await db.query(
     "SELECT COALESCE(SUM(valor_total), 0) AS v FROM obligacion_anual_agua WHERE estado = 'PENDIENTE' AND fecha_vencimiento < ?", [hoy()]
   ))[0][0].v);
@@ -253,7 +255,7 @@ test('un usuario con múltiples lotes recibe una obligación por cada lote', asy
   const [l2] = await db.query('INSERT INTO lotes (codigo, sector_id, superficie_m2) VALUES (?, ?, ?)', ['L-MULTI-2', sector[0].id, 200]);
   await db.query('INSERT INTO persona_lotes (persona_id, lote_id) VALUES (?, ?), (?, ?)', [pConDosLotes.personaId, l1.insertId, pConDosLotes.personaId, l2.insertId]);
 
-  const emision = await generar({ anio: 2022, valor_total: 15 });
+  const emision = await generar({ anio: 2022, valor_hectarea: 15 });
   assert.equal(emision.status, 201);
 
   const [obligaciones] = await db.query('SELECT * FROM obligacion_anual_agua WHERE persona_id = ? AND periodo_anio = 2022', [pConDosLotes.personaId]);

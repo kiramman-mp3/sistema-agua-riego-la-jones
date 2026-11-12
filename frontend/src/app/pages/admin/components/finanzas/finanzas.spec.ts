@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { vi } from 'vitest';
+import { AdminService } from '../../../../core/services/admin.service';
 import { FinanzasService } from '../../../../core/services/finanzas.service';
 import { DialogOpciones, DialogService } from '../../../../core/services/dialog.service';
 import { ComprobantePdfService } from '../../../../core/services/comprobante-pdf.service';
@@ -341,11 +342,13 @@ describe('Cobro en caja', () => {
 describe('Pago anual de agua', () => {
   const previa: ResultadoObligacionesAnuales = {
     anio: 2026,
-    valor: 42,
+    valorHectarea: 42,
     usuarios: 110,
     generadas: 108,
     existentes: 2,
+    hectareas: 108,
     total: 4536,
+    lotes: [],
   };
 
   it('calcula la vista previa del año y solo emite tras confirmar', async () => {
@@ -366,13 +369,13 @@ describe('Pago anual de agua', () => {
     );
     const c = TestBed.createComponent(FacturacionAnualComponent).componentInstance;
     c.cambiarAnio(2026);
-    expect(generar).toHaveBeenLastCalledWith({ anio: 2026, valor_total: null, simular: true });
+    expect(generar).toHaveBeenLastCalledWith({ anio: 2026, valor_hectarea: null, simular: true });
     expect(c.vistaPrevia()?.generadas).toBe(108);
 
     await c.emitir();
-    expect(generar).not.toHaveBeenCalledWith({ anio: 2026, valor_total: null });
+    expect(generar).not.toHaveBeenCalledWith({ anio: 2026, valor_hectarea: null });
     await c.emitir();
-    expect(generar).toHaveBeenCalledWith({ anio: 2026, valor_total: null });
+    expect(generar).toHaveBeenCalledWith({ anio: 2026, valor_hectarea: null });
   });
 
   it('solo ofrece el año actual y los anteriores, y un valor escrito recalcula la vista previa', () => {
@@ -390,11 +393,54 @@ describe('Pago anual de agua', () => {
     c.cambiarValor('45.5');
     expect(generar).toHaveBeenLastCalledWith({
       anio: c.anioActual,
-      valor_total: 45.5,
+      valor_hectarea: 45.5,
       simular: true,
     });
     c.cambiarValor('');
     expect(c.valor()).toBeNull();
+  });
+
+  it('si hay lotes sin superficie no ofrece emitir, los lista y permite completarlos', () => {
+    const sinSuperficie = [
+      { id: 9, codigo: 'LJA-009', sector_nombre: 'La Jones', titular: 'Ana Paz' },
+    ];
+    const lote = { id: 9, sector_id: 1, codigo: 'LJA-009', superficie_m2: null, activo: true };
+    const getLotes = vi.fn(() => of({ status: 'OK', data: [lote] }));
+    configurar({
+      getResumenAnualAgua: () =>
+        of({
+          status: 'OK',
+          data: { anio: 2026, emitidas: 0, pagadas: 0, pendientes: 0, total: 0, recaudado: 0 },
+        }),
+      generarObligacionesAnualesAgua: () =>
+        throwError(() => ({
+          error: {
+            message: 'No se puede generar el cobro anual porque existen lotes sin su superficie.',
+            lotes_sin_superficie: sinSuperficie,
+          },
+        })),
+    });
+    TestBed.overrideProvider(AdminService, {
+      useValue: { getLotes, getSectores: () => of({ status: 'OK', data: [] }) },
+    });
+    const fixture = TestBed.createComponent(FacturacionAnualComponent);
+    fixture.detectChanges();
+    const c = fixture.componentInstance;
+    expect(c.lotesSinSuperficie()).toEqual(sinSuperficie);
+    expect(c.vistaPrevia()).toBeNull();
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.textContent).toContain('existen lotes sin su superficie');
+    expect(el.textContent).not.toContain('LJA-009');
+    c.verLotesSinSuperficie.set(true);
+    fixture.detectChanges();
+    expect(el.textContent).toContain('LJA-009');
+
+    c.completarSuperficie(sinSuperficie[0]);
+    expect(getLotes).toHaveBeenCalledWith(undefined, 'LJA-009');
+    expect(c.loteEnEdicion()?.id).toBe(9);
+    c.cerrarLote();
+    expect(c.loteEnEdicion()).toBeNull();
   });
 });
 

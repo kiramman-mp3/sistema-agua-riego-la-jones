@@ -1,5 +1,7 @@
 const db = require('../config/db');
 const { registrarAuditoria } = require('../services/auditService');
+const finanzas = require('../services/finanzasService');
+const { hoy } = require('../shared/dates');
 // Las altas y cambios de usuarios y cuentas guardan su auditoría dentro de la misma transacción.
 const { withTransaction } = require('../shared/transaction');
 const { generarPasswordTemporal, hashPassword } = require('../shared/passwords');
@@ -118,6 +120,14 @@ async function getPersonas(req, res) {
     [...params, limit, offset]
   );
   const [[{ total }]] = await db.query(`SELECT COUNT(*) AS total FROM personas p${where}`, params);
+
+  // Hectáreas de sus lotes y valor anual del agua que le corresponde con la tarifa por hectárea vigente hoy.
+  const anual = await finanzas.valorAnualPorPersona(db, personas.map((p) => p.id), hoy());
+  for (const p of personas) {
+    const fila = anual.get(Number(p.id));
+    p.hectareas_total = fila.hectareas;
+    p.valor_anual_agua = fila.valorAnual;
+  }
 
   return res.json({ status: 'OK', data: personas, pagination: { total, page, limit } });
 }

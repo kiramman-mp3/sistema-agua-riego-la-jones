@@ -8,7 +8,7 @@ import {
   effect,
   untracked,
 } from '@angular/core';
-import { NgClass } from '@angular/common';
+import { DecimalPipe, NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Subject, debounceTime } from 'rxjs';
@@ -29,12 +29,15 @@ import { LotesUsuarioComponent } from '../lotes-usuario/lotes-usuario.component'
 import { LoteDetalleComponent } from '../lote-detalle/lote-detalle.component';
 import { LoteFormComponent } from '../lote-form/lote-form.component';
 import { AYUDAS_FORMULARIO } from '../../../../../core/directives/formularios';
+import { MonedaPipe } from '../../../../../shared/pipes/moneda.pipe';
 
 /** Padrón de usuarios: búsqueda en el servidor, paginación y acciones por usuario. */
 @Component({
   selector: 'app-padron-usuarios',
   standalone: true,
   imports: [
+    DecimalPipe,
+    MonedaPipe,
     NgClass,
     FormsModule,
     ...AYUDAS_FORMULARIO,
