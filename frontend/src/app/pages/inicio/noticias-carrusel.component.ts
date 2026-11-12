@@ -20,7 +20,7 @@ export const NOTICIAS_EN_CARRUSEL = 5;
 const SEGUNDOS_POR_NOTICIA = 6;
 
 /**
- * Carrusel de las últimas noticias de la portada. Avanza solo, salvo que la persona lo pause, pase
+ * Carrusel de las últimas noticias, bajo la portada. Avanza solo, salvo que la persona lo pause, pase
  * el puntero o el foco por encima, o prefiera menos movimiento. Si no hay noticias no ocupa lugar.
  */
 @Component({
@@ -29,6 +29,7 @@ const SEGUNDOS_POR_NOTICIA = 6;
   imports: [RouterLink, FechaLocalPipe],
   template: `
     @if (noticias().length) {
+      <h2 class="carrusel__encabezado portal-subtitulo">Últimas noticias</h2>
       <section
         class="carrusel"
         aria-roledescription="carrusel"
@@ -66,9 +67,9 @@ const SEGUNDOS_POR_NOTICIA = 6;
                       <span class="carrusel__tag">{{ tag }}</span>
                     }
                   </div>
-                  <h2 class="carrusel__titulo">
+                  <h3 class="carrusel__titulo">
                     <a [routerLink]="['/noticias', noticia.id]">{{ noticia.titulo }}</a>
-                  </h2>
+                  </h3>
                   <p class="carrusel__resumen">{{ noticia.descripcion_corta }}</p>
                   <span class="carrusel__leer" aria-hidden="true">
                     Leer la noticia <i class="ri-arrow-right-line"></i>

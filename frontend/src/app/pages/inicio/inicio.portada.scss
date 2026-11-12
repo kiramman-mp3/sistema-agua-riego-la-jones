@@ -1,4 +1,4 @@
-// Portada de Inicio: cabecera con el carrusel de noticias, próximos eventos y sectores.
+// Portada de Inicio: cabecera, carrusel de noticias, próximos eventos y sectores.
 // (Los estilos del cronograma de riego, que se abre en un modal, están en inicio.component.scss.)
 
 .hero {
@@ -136,6 +136,11 @@
 }
 
 .inicio {
+  // El carrusel de noticias pone su propio margen; sin noticias este contenedor no ocupa lugar.
+  &__noticias {
+    padding-bottom: 0;
+  }
+
   &__seccion {
     padding-top: clamp(3.5rem, 7vw, 5.5rem);
     padding-bottom: 0;
