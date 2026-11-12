@@ -104,7 +104,7 @@ El comando se detiene si hay archivos modificados en el servidor o si la versió
 
 1. crea un respaldo (`npm run respaldo`); si falla, no cambia nada;
 2. cambia el código a la etiqueta (`git checkout v1.1.0`);
-3. ejecuta `npm run prod:preparar` (dependencias, frontend y migraciones);
+3. ejecuta `npm run prod:preparar -- --instalar`: reinstala las dependencias (una versión nueva puede traer paquetes nuevos), compila el frontend y migra;
 4. con `--reiniciar`, reinicia `junta-backend` con `systemctl` (sin la opción, pide reiniciarlo a mano);
 5. espera a que `/api/health` responda.
 
@@ -114,7 +114,7 @@ Al terminar, o si un paso falla, imprime los comandos para volver a la versión 
 sudo systemctl stop junta-backend
 git checkout v1.0.5
 npm run respaldo -- --restaurar backups/junta-AAAAMMDD-HHMMSS.sql.gz --confirmar
-npm run prod:preparar
+npm run prod:preparar -- --instalar
 sudo systemctl start junta-backend
 ```
 
