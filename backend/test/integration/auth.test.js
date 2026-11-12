@@ -170,3 +170,14 @@ test('la purga borra los intentos viejos sin bloqueo vigente', async () => {
   const [filas] = await db.query('SELECT ip FROM intentos_login WHERE cuenta_id = ? ORDER BY ip', [u.cuentaId]);
   assert.deepEqual(filas.map((f) => f.ip), ['192.0.2.2', '192.0.2.3']);
 });
+
+test('al entrar con un hash bcrypt anterior, se reemplaza por scrypt sin cerrar sesiones', async () => {
+  const bcrypt = require('bcryptjs');
+  const u = await crearUsuario();
+  await db.query('UPDATE cuentas SET password_hash = ? WHERE id = ?', [bcrypt.hashSync(u.password, 4), u.cuentaId]);
+  assert.equal((await login(u.cedula, u.password)).status, 200);
+  const [[cuenta]] = await db.query('SELECT password_hash FROM cuentas WHERE id = ?', [u.cuentaId]);
+  assert.match(cuenta.password_hash, /^scrypt\$/);
+  assert.equal((await login(u.cedula, u.password)).status, 200, 'la contraseña sigue funcionando');
+  assert.equal((await request(app).get('/api/auth/me').set(auth(u))).status, 200, 'el token anterior sigue valiendo');
+});
