@@ -1,5 +1,6 @@
 const db = require('../config/db');
 const { registrarAuditoria } = require('../services/auditService');
+const finanzas = require('../services/finanzasService');
 const { personaPermitida } = require('../shared/roles');
 const { withTransaction } = require('../shared/transaction');
 const { hoy } = require('../shared/dates');
@@ -275,14 +276,19 @@ async function updateLote(req, res) {
   const nuevaReferencia = datos.referencia_ubicacion !== undefined ? datos.referencia_ubicacion : loteActual.referencia_ubicacion;
   const nuevaObservacion = datos.observacion !== undefined ? datos.observacion : loteActual.observacion;
 
-  await db.query(
-    `UPDATE lotes
-     SET sector_id = ?, codigo = ?, superficie_m2 = ?, ancho_m = ?, largo_m = ?,
-         latitud_aproximada = ?, longitud_aproximada = ?, radio_error_m = ?,
-         referencia_ubicacion = ?, observacion = ?
-     WHERE id = ?`,
-    [nuevoSectorId, nuevoCodigo, nuevaSuperficie, nuevoAncho, nuevoLargo, nuevaLatitud, nuevaLongitud, nuevoRadio, nuevaReferencia, nuevaObservacion, id]
-  );
+  // Si cambia la superficie, las cuotas anuales pendientes del lote se recalculan en la misma transacción.
+  const cuotasRecalculadas = await withTransaction(async (conexion) => {
+    await conexion.query(
+      `UPDATE lotes
+       SET sector_id = ?, codigo = ?, superficie_m2 = ?, ancho_m = ?, largo_m = ?,
+           latitud_aproximada = ?, longitud_aproximada = ?, radio_error_m = ?,
+           referencia_ubicacion = ?, observacion = ?
+       WHERE id = ?`,
+      [nuevoSectorId, nuevoCodigo, nuevaSuperficie, nuevoAncho, nuevoLargo, nuevaLatitud, nuevaLongitud, nuevoRadio, nuevaReferencia, nuevaObservacion, id]
+    );
+    if (Number(nuevaSuperficie) === Number(loteActual.superficie_m2)) return [];
+    return finanzas.recalcularCuotasPendientesDeLote(conexion, { loteId: id, superficieM2: Number(nuevaSuperficie) });
+  });
 
   await registrarAuditoria({
     cuentaId: req.user.cuentaId,
@@ -290,10 +296,21 @@ async function updateLote(req, res) {
     entidad: 'lotes',
     entidadId: id,
     ip: req.ip,
-    detalle: { codigo: nuevoCodigo, sector_id: nuevoSectorId }
+    detalle: {
+      codigo: nuevoCodigo, sector_id: nuevoSectorId,
+      ...(cuotasRecalculadas.length && {
+        superficie_anterior_m2: Number(loteActual.superficie_m2), superficie_nueva_m2: Number(nuevaSuperficie), cuotasRecalculadas
+      })
+    }
   });
 
-  return res.json({ status: 'OK', message: 'Lote actualizado exitosamente.', data: { id, codigo: nuevoCodigo } });
+  const aviso = cuotasRecalculadas.length
+    ? ` Se recalcularon ${cuotasRecalculadas.length} cuota(s) anual(es) de agua pendiente(s) con la nueva superficie.`
+    : '';
+  return res.json({
+    status: 'OK', message: `Lote actualizado exitosamente.${aviso}`, data: { id, codigo: nuevoCodigo },
+    cuotasRecalculadas: cuotasRecalculadas.length ? cuotasRecalculadas : undefined
+  });
 }
 
 /**
