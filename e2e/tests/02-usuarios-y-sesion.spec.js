@@ -167,7 +167,8 @@ test.describe('primer ingreso del usuario nuevo', () => {
     await page.goto('/admin/cobros/cobrar');
     await expect(page).not.toHaveURL(/\/admin/);
 
-    const token = await page.evaluate(() => localStorage.getItem('junta_token') ?? sessionStorage.getItem('junta_token'));
+    // La sesión del navegador está en la cookie HttpOnly: la página no la puede leer, la prueba sí.
+    const token = (await page.context().cookies()).find((c) => c.name === 'junta_sesion')?.value;
     expect(token).toBeTruthy();
     const cabeceras = { Authorization: `Bearer ${token}` };
     for (const ruta of ['/api/personas', '/api/auditoria', '/api/inventario', '/api/financiero/tarifas', '/api/dashboard/resumen']) {

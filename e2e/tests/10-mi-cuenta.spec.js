@@ -36,7 +36,8 @@ test.describe('lo que ve el usuario', () => {
     const { usuario, password } = credenciales();
     await iniciarSesion(page, { cedula: usuario.cedula, password });
     await expect(page).toHaveURL(/\/mi-cuenta/);
-    const token = await page.evaluate(() => localStorage.getItem('junta_token') ?? sessionStorage.getItem('junta_token'));
+    // La sesión del navegador está en la cookie HttpOnly: la página no la puede leer, la prueba sí.
+    const token = (await page.context().cookies()).find((c) => c.name === 'junta_sesion')?.value;
     const cabeceras = { Authorization: `Bearer ${token}` };
 
     const propias = await request.get('/api/financiero/obligaciones', { headers: cabeceras });

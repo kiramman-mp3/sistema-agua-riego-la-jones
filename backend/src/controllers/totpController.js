@@ -15,7 +15,7 @@ const { ROLES } = require('../shared/roles');
  * sesión devuelve primero un token intermedio de 5 minutos y la sesión completa llega al enviar el código de la
  * aplicación de autenticación (o un código de recuperación de un solo uso).
  */
-const codigoSchema = z.object({ codigo: z.string().trim().min(1, 'Ingrese el código.').max(20) });
+const codigoSchema = z.object({ codigo: z.string().trim().min(1, 'Ingrese el código.').max(20), recordar: z.boolean().default(true) });
 const passwordSchema = z.object({ password: z.string().min(1, 'Ingrese su contraseña.').max(200) });
 
 async function cuentaTotp(conexion, cuentaId, { bloquear = false } = {}) {
@@ -57,7 +57,7 @@ async function consumirCodigo(conexion, cuenta, codigo) {
 
 /** Segundo paso del inicio de sesión: con el token intermedio y el código, entrega la sesión completa. */
 async function verificar(req, res) {
-  const { codigo } = codigoSchema.parse(req.body);
+  const { codigo, recordar } = codigoSchema.parse(req.body);
   const resultado = await withTransaction(async (conexion) => {
     const cuenta = await cuentaTotp(conexion, req.user.cuentaId, { bloquear: true });
     if (!cuenta.totp_activo || !cuenta.totp_secreto) throw unauthorized('Inicie sesión nuevamente.');
@@ -79,6 +79,7 @@ async function verificar(req, res) {
     detalle: { rol: user.rol, segundoFactor: resultado.tipo }
   });
   const token = firmarToken(user, user.debeCambiarPassword ? { alcance: ALCANCE_CAMBIO_PASSWORD } : undefined);
+  require('./authController').entregarSesion(req, res, token, { recordar });
   return res.json({
     status: 'OK', message: 'Inicio de sesión exitoso.', token, user,
     ...(resultado.quedan !== null ? { codigosRecuperacionRestantes: resultado.quedan } : {})

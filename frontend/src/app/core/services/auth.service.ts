@@ -41,16 +41,18 @@ export class AuthService {
 
   /** Con `recordar` la sesión sobrevive al cierre del navegador; sin él dura lo que la pestaña. */
   login(cedula: string, password: string, recordar = true): Observable<LoginResponse> {
-    return this.http.post<LoginResponse>(`${this.apiUrl}/login`, { cedula, password }).pipe(
-      tap((res) => {
-        if (res.requiereTotp) {
-          this.tokenTotp = res.token;
-          this.recordarTotp = recordar;
-        } else if (res.token) {
-          session.guardar(res.token, res.user, recordar);
-        }
-      }),
-    );
+    return this.http
+      .post<LoginResponse>(`${this.apiUrl}/login`, { cedula, password, recordar })
+      .pipe(
+        tap((res) => {
+          if (res.requiereTotp) {
+            this.tokenTotp = res.token;
+            this.recordarTotp = recordar;
+          } else if (res.token) {
+            session.guardar(res.token, res.user, recordar);
+          }
+        }),
+      );
   }
 
   /** Segundo paso del ingreso: el código de la aplicación de autenticación o uno de recuperación. */
@@ -58,7 +60,7 @@ export class AuthService {
     return this.http
       .post<LoginResponse>(
         `${this.apiUrl}/totp/verificar`,
-        { codigo },
+        { codigo, recordar: this.recordarTotp },
         { headers: { Authorization: `Bearer ${this.tokenTotp ?? ''}` } },
       )
       .pipe(
@@ -112,15 +114,13 @@ export class AuthService {
 
   /**
    * Cierra la sesión en este navegador y en el servidor: el token deja de valer aunque alguien lo
-   * haya copiado. El aviso al servidor no bloquea la salida si no hay conexión.
+   * haya copiado, y el servidor borra la cookie. El aviso al servidor no bloquea la salida si no hay conexión.
    */
   logout(): void {
-    const token = session.token();
+    const habia = session.activa();
     session.limpiar();
-    if (!token) return;
-    this.http
-      .post(`${this.apiUrl}/logout`, {}, { headers: { Authorization: `Bearer ${token}` } })
-      .subscribe({ error: () => undefined });
+    if (!habia) return;
+    this.http.post(`${this.apiUrl}/logout`, {}).subscribe({ error: () => undefined });
   }
 
   /**
@@ -129,7 +129,11 @@ export class AuthService {
    */
   changePassword(actualPassword: string, nuevaPassword: string): Observable<LoginResponse> {
     return this.http
-      .post<LoginResponse>(`${this.apiUrl}/change-password`, { actualPassword, nuevaPassword })
+      .post<LoginResponse>(`${this.apiUrl}/change-password`, {
+        actualPassword,
+        nuevaPassword,
+        recordar: session.recordada(),
+      })
       .pipe(
         tap((res) => {
           if (res.token) session.guardar(res.token, res.user);
@@ -137,16 +141,13 @@ export class AuthService {
       );
   }
 
-  getToken(): string | null {
-    return session.token();
-  }
-
   getUser(): LoginResponse['user'] | null {
     return session.usuario<LoginResponse['user']>();
   }
 
+  /** Hay una sesión vigente (la cookie la valida el servidor en cada petición). */
   isLoggedIn(): boolean {
-    return !!this.getToken();
+    return session.activa();
   }
 
   /** La sesión tiene un token temporal que solo sirve para cambiar la contraseña. */
