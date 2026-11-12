@@ -339,7 +339,7 @@ La lista completa para un VPS (DNS, usuario de MySQL, SSH, HTTPS, primer ingreso
 | **Turnos de Riego** | No se permite que coincidan dos turnos en el mismo sector con cruce de horario. |
 | **Asambleas y Mingas** | Al marcar un socio como ausente no justificado, el sistema genera automáticamente una multa financiera según la tarifa fijada para el evento. |
 | **Cobro en Caja** | El cobro registra el desglose de conceptos pagados, actualiza el saldo deudor de forma atómica en una única transacción y emite recibo foliado con hash de seguridad. |
-| **Facturación Anual** | Solo se emite la obligación anual de agua a socios que posean al menos un lote activo registrado en el catastro. |
+| **Facturación Anual** | El agua se cobra una vez al año **por hectárea**: cada lote de un socio activo paga el valor por hectárea (tarifa `AGUA_ANUAL`) por sus hectáreas (m² ÷ 10.000), redondeado al centavo. La superficie es obligatoria; si algún lote por emitir no la tiene, no se emite nada y se lista cuáles son para completarlos. Corregir la superficie recalcula la cuota pendiente. La deuda sigue al lote: al transferirlo, las cuotas pendientes pasan al nuevo titular. Las multas por inasistencia siguen siendo por persona. |
 | **Protección contra Fuerza Bruta** | Tras 5 intentos fallidos consecutivos, el inicio de sesión de esa cuenta queda bloqueado 15 minutos **desde esa IP** (tabla `intentos_login`); el dueño legítimo puede entrar desde otra red. La directiva ve las cuentas bloqueadas en el padrón de usuarios y puede desbloquearlas sin cambiar la contraseña. |
 | **Cierre de Sesión** | Cerrar sesión invalida todas las sesiones de la cuenta en todos los dispositivos; la interfaz lo avisa. |
 | **Contraseñas** | Mínimo 10 caracteres con letras y números, sin incluir la cédula y sin ser una contraseña común (`password123`, `Junta2026`…). Se valida en el servidor y en el formulario. |
@@ -362,7 +362,7 @@ Todos los formularios del panel siguen las mismas reglas para evitar errores de 
 Los cobros en caja piden confirmar el monto, la persona y el medio de pago antes de registrarse.
 
 ### Migraciones y Base de Datos
-El proyecto cuenta con 30 migraciones versionadas y aplicadas de forma secuencial (`backend/database/migrations/`). Cada cambio estructural en tablas, índices, catálogos o restricciones foráneas se realiza a través de un archivo nuevo numerado, impidiendo inconsistencias entre entornos de desarrollo y producción.
+El proyecto cuenta con 32 migraciones versionadas y aplicadas de forma secuencial (`backend/database/migrations/`). Cada cambio estructural en tablas, índices, catálogos o restricciones foráneas se realiza a través de un archivo nuevo numerado, impidiendo inconsistencias entre entornos de desarrollo y producción.
 
 ### Manejo de Fechas y Zona Horaria
 La Junta de Agua opera en la zona horaria oficial de Ecuador continental (`America/Guayaquil`, UTC-5). En la base de datos:
@@ -385,6 +385,7 @@ La Junta de Agua opera en la zona horaria oficial de Ecuador continental (`Ameri
 - [x] Auditoría integral de modificaciones en base de datos.
 - [x] Scroll interno y responsivo en listas extensas de asistencia.
 - [x] Formularios con campos obligatorios marcados, máscaras, errores por campo y confirmación antes de descartar datos.
+- [x] Cobro anual del agua por hectárea, con superficie obligatoria por lote y deuda que sigue al lote al transferirlo.
 - [ ] Exportación de reportes financieros consolidados a formato Excel (.xlsx).
 - [ ] Integración de pasarela de pago digital para abonos en línea.
 - [ ] Notificaciones push para advertir inicios de turnos de riego en dispositivos móviles.
