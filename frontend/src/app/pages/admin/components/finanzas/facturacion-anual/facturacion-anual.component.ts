@@ -1,6 +1,7 @@
 import { Component, inject, output, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { FinanzasService } from '../../../../../core/services/finanzas.service';
 import { NotificationService } from '../../../../../core/services/notification.service';
 import { DialogService } from '../../../../../core/services/dialog.service';
@@ -27,7 +28,14 @@ import { AYUDAS_FORMULARIO } from '../../../../../core/directives/formularios';
 @Component({
   selector: 'app-facturacion-anual',
   standalone: true,
-  imports: [DecimalPipe, MonedaPipe, FormsModule, LoteFormComponent, ...AYUDAS_FORMULARIO],
+  imports: [
+    DecimalPipe,
+    MonedaPipe,
+    FormsModule,
+    RouterLink,
+    LoteFormComponent,
+    ...AYUDAS_FORMULARIO,
+  ],
   templateUrl: './facturacion-anual.component.html',
 })
 export class FacturacionAnualComponent {
