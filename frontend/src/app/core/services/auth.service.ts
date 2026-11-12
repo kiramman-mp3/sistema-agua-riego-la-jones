@@ -8,6 +8,9 @@ export interface LoginResponse {
   status: string;
   message: string;
   token: string;
+  /** La cuenta tiene verificación en dos pasos: `token` solo sirve para enviar el código. */
+  requiereTotp?: boolean;
+  codigosRecuperacionRestantes?: number;
   user: {
     cuentaId: number;
     personaId: number;
@@ -29,12 +32,81 @@ export class AuthService {
 
   private readonly http = inject(HttpClient);
 
+  /**
+   * Token intermedio del segundo paso (verificación en dos pasos). Se guarda solo en memoria: si se recarga la
+   * página hay que volver a escribir la contraseña.
+   */
+  private tokenTotp: string | null = null;
+  private recordarTotp = true;
+
   /** Con `recordar` la sesión sobrevive al cierre del navegador; sin él dura lo que la pestaña. */
   login(cedula: string, password: string, recordar = true): Observable<LoginResponse> {
     return this.http.post<LoginResponse>(`${this.apiUrl}/login`, { cedula, password }).pipe(
       tap((res) => {
-        if (res.token) session.guardar(res.token, res.user, recordar);
+        if (res.requiereTotp) {
+          this.tokenTotp = res.token;
+          this.recordarTotp = recordar;
+        } else if (res.token) {
+          session.guardar(res.token, res.user, recordar);
+        }
       }),
+    );
+  }
+
+  /** Segundo paso del ingreso: el código de la aplicación de autenticación o uno de recuperación. */
+  verificarTotp(codigo: string): Observable<LoginResponse> {
+    return this.http
+      .post<LoginResponse>(
+        `${this.apiUrl}/totp/verificar`,
+        { codigo },
+        { headers: { Authorization: `Bearer ${this.tokenTotp ?? ''}` } },
+      )
+      .pipe(
+        tap((res) => {
+          if (res.token) {
+            session.guardar(res.token, res.user, this.recordarTotp);
+            this.tokenTotp = null;
+          }
+        }),
+      );
+  }
+
+  /** Abandona el segundo paso del ingreso. */
+  cancelarTotp(): void {
+    this.tokenTotp = null;
+  }
+
+  /** Genera el secreto y el código QR para activar la verificación en dos pasos. */
+  iniciarTotp(): Observable<{
+    status: string;
+    data: { secreto: string; uri: string; qr: string };
+  }> {
+    return this.http.post<{ status: string; data: { secreto: string; uri: string; qr: string } }>(
+      `${this.apiUrl}/totp/iniciar`,
+      {},
+    );
+  }
+
+  /** Confirma la activación con el primer código; devuelve los códigos de recuperación. */
+  activarTotp(
+    codigo: string,
+  ): Observable<{ status: string; message: string; codigosRecuperacion: string[] }> {
+    return this.http.post<{ status: string; message: string; codigosRecuperacion: string[] }>(
+      `${this.apiUrl}/totp/activar`,
+      { codigo },
+    );
+  }
+
+  desactivarTotp(password: string): Observable<{ status: string; message: string }> {
+    return this.http.post<{ status: string; message: string }>(`${this.apiUrl}/totp/desactivar`, {
+      password,
+    });
+  }
+
+  /** Estado actual de la cuenta (incluye si tiene activa la verificación en dos pasos). */
+  perfil(): Observable<{ status: string; user: LoginResponse['user'] & { totpActivo: boolean } }> {
+    return this.http.get<{ status: string; user: LoginResponse['user'] & { totpActivo: boolean } }>(
+      `${this.apiUrl}/me`,
     );
   }
 

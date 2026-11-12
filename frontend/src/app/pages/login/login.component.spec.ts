@@ -159,3 +159,50 @@ describe('Política de contraseñas', () => {
     );
   });
 });
+
+describe('Login con verificación en dos pasos', () => {
+  it('tras la contraseña pide el código y con él entra según el rol', () => {
+    const login = vi.fn(() =>
+      of({ status: 'OK', requiereTotp: true, token: 'intermedio', user: usuario(false, 'ADMIN') }),
+    );
+    const verificarTotp = vi.fn(() =>
+      of({ status: 'OK', token: 'completo', user: usuario(false, 'ADMIN') }),
+    );
+    const { component, router } = crear({ login, verificarTotp });
+    component.usuario = '1803456789';
+    component.password = 'Canal-Matriz-0417';
+    component.iniciarSesion();
+    expect(component.requiereTotp).toBe(true);
+    expect(router.navigate).not.toHaveBeenCalled();
+
+    component.verificarCodigo();
+    expect(component.errorMensaje).toContain('código');
+    expect(verificarTotp).not.toHaveBeenCalled();
+
+    component.codigoTotp = ' 123456 ';
+    component.verificarCodigo();
+    expect(verificarTotp).toHaveBeenCalledWith('123456');
+    expect(component.requiereTotp).toBe(false);
+    expect(router.navigate).toHaveBeenCalledWith(['/admin']);
+  });
+
+  it('un código incorrecto muestra el error y limpia el campo; "Volver" regresa al formulario', () => {
+    const cancelarTotp = vi.fn();
+    const { component } = crear({
+      verificarTotp: () =>
+        throwError(() => ({
+          status: 401,
+          error: { message: 'El código no es válido o ya se usó.' },
+        })),
+      cancelarTotp,
+    });
+    component.requiereTotp = true;
+    component.codigoTotp = '000000';
+    component.verificarCodigo();
+    expect(component.errorMensaje).toContain('no es válido');
+    expect(component.codigoTotp).toBe('');
+    component.cancelarTotp();
+    expect(cancelarTotp).toHaveBeenCalled();
+    expect(component.requiereTotp).toBe(false);
+  });
+});

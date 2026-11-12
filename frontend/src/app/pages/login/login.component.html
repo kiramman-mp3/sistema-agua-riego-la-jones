@@ -19,8 +19,53 @@
       </div>
     }
 
+    <!-- SEGUNDO PASO: VERIFICACIÓN EN DOS PASOS -->
+    @if (requiereTotp) {
+      <form (submit)="verificarCodigo(); $event.preventDefault()" class="login-form">
+        <p class="form-legend">
+          Su cuenta tiene verificación en dos pasos. Abra su aplicación de autenticación y escriba
+          el código de 6 dígitos de la Junta La Jones. Si perdió el teléfono, use uno de sus códigos
+          de recuperación.
+        </p>
+        <div class="form-group">
+          <label for="codigo-totp"
+            ><i aria-hidden="true" class="ri-shield-keyhole-line"></i> Código de verificación
+            <span class="req" aria-hidden="true">*</span></label
+          >
+          <input
+            type="text"
+            id="codigo-totp"
+            class="form-control"
+            placeholder="Ej. 123456"
+            [(ngModel)]="codigoTotp"
+            name="codigoTotp"
+            autocomplete="one-time-code"
+            inputmode="text"
+            maxlength="20"
+            required
+          />
+        </div>
+        <button type="submit" class="btn btn--primary btn--lg btn-block" [disabled]="cargando">
+          @if (cargando) {
+            <i aria-hidden="true" class="ri-loader-4-line spin"></i>
+          } @else {
+            <i aria-hidden="true" class="ri-shield-check-line"></i>
+          }
+          {{ cargando ? 'Verificando...' : 'Verificar código' }}
+        </button>
+        <button
+          type="button"
+          class="btn btn--outline btn-block"
+          (click)="cancelarTotp()"
+          [disabled]="cargando"
+        >
+          Volver
+        </button>
+      </form>
+    }
+
     <!-- FLUJO LOGIN NORMAL -->
-    @if (!requiereCambioPassword) {
+    @if (!requiereCambioPassword && !requiereTotp) {
       <form (submit)="iniciarSesion(); $event.preventDefault()" class="login-form">
         <p class="form-legend"><span class="req" aria-hidden="true">*</span> Campos obligatorios</p>
         <div class="form-group">
