@@ -176,6 +176,8 @@ async function anularEgreso(conexion, { egresoId, motivo, cuentaId }) {
 }
 
 const M2_POR_HECTAREA = 10000;
+/** Nota que la migración 031 deja en los lotes a los que puso la superficie provisional de demostración. */
+const NOTA_SUPERFICIE_PROVISIONAL = 'Superficie provisional de demostración: corregir.';
 
 /** Hectáreas de un lote a partir de sus m²; null si no tiene superficie válida. */
 function hectareasDeLote(superficieM2) {
@@ -347,13 +349,24 @@ async function resumenAnualAgua(conexion, anio) {
      FROM obligacion_anual_agua WHERE periodo_anio = ? AND estado <> 'ANULADA'`,
     [anio]
   );
+  // Lotes con titular que bloquean el cobro (sin superficie) o que se cobrarían sobre la superficie provisional
+  // de demostración que la migración 031 pone fuera de producción.
+  const [[lotes]] = await conexion.query(
+    `SELECT COALESCE(SUM(l.superficie_m2 IS NULL), 0) AS sinSuperficie,
+            COALESCE(SUM(l.observacion = ?), 0) AS provisionales
+     FROM lotes l JOIN persona_lotes pl ON pl.lote_id = l.id
+     WHERE l.activo = TRUE`,
+    [NOTA_SUPERFICIE_PROVISIONAL]
+  );
   return {
     anio,
     emitidas: Number(fila.emitidas),
     pagadas: Number(fila.pagadas),
     pendientes: Number(fila.pendientes),
     total: redondear(fila.total),
-    recaudado: redondear(fila.recaudado)
+    recaudado: redondear(fila.recaudado),
+    lotesSinSuperficie: Number(lotes.sinSuperficie),
+    lotesSuperficieProvisional: Number(lotes.provisionales)
   };
 }
 

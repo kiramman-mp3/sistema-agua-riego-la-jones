@@ -145,3 +145,15 @@ test('el padrón muestra las hectáreas de cada usuario y su valor anual con la 
   assert.equal(fila(admin).hectareas_total, 0);
   assert.equal(fila(admin).valor_anual_agua, 0);
 });
+
+test('el resumen anual cuenta los lotes sin superficie y los de superficie provisional', async () => {
+  const provisional = await crearLote({ sectorId: sector, personaId: otro.personaId, codigo: 'LJA-PRV', superficie: 10000 });
+  await db.query("UPDATE lotes SET observacion = 'Superficie provisional de demostración: corregir.' WHERE id = ?", [provisional]);
+  const sin = await crearLote({ sectorId: sector, personaId: otro.personaId, codigo: 'LJA-SIN' });
+  await db.query('UPDATE lotes SET superficie_m2 = NULL WHERE id = ?', [sin]);
+
+  const res = await request(app).get('/api/financiero/agua-anual/resumen?anio=2030').set(auth(admin));
+  assert.equal(res.status, 200, JSON.stringify(res.body));
+  assert.equal(res.body.data.lotesSuperficieProvisional, 1);
+  assert.equal(res.body.data.lotesSinSuperficie, 1);
+});
