@@ -195,7 +195,7 @@ erDiagram
 
 ### 4.2. Dominio de Lotes y Riego
 - **`sectores`**: Sectores geográficos de riego en Patate.
-- **`lotes`**: Terrenos con coordenadas de latitud/longitud aproximadas y radio de error en metros.
+- **`lotes`**: Terrenos con coordenadas de latitud/longitud aproximadas y radio de error en metros. La superficie se registra en m² (`superficie_m2`) y es obligatoria para crear o editar un lote; las hectáreas (m² ÷ 10.000) se calculan, no se guardan. La migración 031 puso 10.000 m² provisionales (con una nota en `observacion`) a los lotes que no tenían superficie.
 - **`persona_lotes`**: Soporta propiedad, copropiedad o representación de lotes.
 - **`turnos_riego`**: Asigna horarios semanales de riego a un usuario (`persona_id`) y su lote; dos turnos del mismo sector no pueden cruzarse. Los turnos adicionales se eliminaron (migración 018). Emplea desactivación lógica (`estado_turno_riego: INACTIVO`) para preservar la trazabilidad histórica de asignaciones y evitar la pérdida de antecedentes en fiscalizaciones.
 
@@ -212,7 +212,7 @@ erDiagram
 - **`tarifas`**: Valores con vigencia desde/hasta.
 - **`obligaciones`**: Deudas pendientes. **No se permiten pagos parciales**. Origen `MANUAL` o `AUTOMATICA`.
 - **`pagos` & `pago_detalles`**: Un pago liquida una o varias obligaciones completas. La regla "una obligación se paga una sola vez" la garantiza su estado `PENDIENTE`/`PAGADA` bajo bloqueo, no un índice único (el historial de pagos anulados se conserva).
-- **`obligacion_anual_agua`**: Una obligación por usuario y año (`UNIQUE persona_id, periodo_anio`) con estado `PENDIENTE`/`PAGADO`.
+- **`obligacion_anual_agua`**: Una obligación por lote y año (`UNIQUE lote_id, periodo_anio`) con estado `PENDIENTE`/`PAGADA`/`ANULADA`. La cuota es el valor por hectárea por las hectáreas del lote; `valor_hectarea` y `superficie_m2` (migración 032) guardan con qué se calculó, para recalcularla si se corrige la superficie mientras está pendiente. Las emitidas antes quedan con ambos en `NULL` y no se recalculan. `persona_id` es quien debe la cuota: al transferir el lote, las pendientes pasan al nuevo titular.
 - **`pago_anual_agua` & `pago_anual_agua_detalle`**: Cabecera y detalle del pago anual (solo `TRANSFERENCIA` o `DEPOSITO`, con `registrado_por_cuenta_id`). Una obligación anual solo puede figurar en un detalle (`UNIQUE`). Sus importes se suman al balance, al historial y al panel junto con `pagos`.
 - **`proveedores` & `egresos`**: Registro de compras y gastos de la Junta.
 
