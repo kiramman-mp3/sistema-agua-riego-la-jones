@@ -131,3 +131,42 @@ test('el rol se toma de la base: un cambio de rol aplica sin volver a iniciar se
   await db.query("UPDATE cuentas SET rol_id = (SELECT id FROM roles WHERE codigo = 'USUARIO') WHERE id = ?", [u.cuentaId]);
   assert.equal((await request(app).get('/api/personas').set(auth(u))).status, 403);
 });
+
+test('los intentos fallidos caducan: un fallo fuera de la ventana de 15 minutos vuelve a contar desde 1', async () => {
+  const u = await crearUsuario();
+  for (let i = 0; i < 4; i++) await login(u.cedula, 'incorrecta1');
+  // Los cuatro fallos quedan fuera de la ventana.
+  await db.query('UPDATE intentos_login SET primer_fallo_en = UTC_TIMESTAMP() - INTERVAL 1 HOUR WHERE cuenta_id = ?', [u.cuentaId]);
+  await login(u.cedula, 'incorrecta1');
+  const [[fila]] = await db.query('SELECT intentos, bloqueado_hasta FROM intentos_login WHERE cuenta_id = ?', [u.cuentaId]);
+  assert.deepEqual({ intentos: fila.intentos, bloqueado: fila.bloqueado_hasta }, { intentos: 1, bloqueado: null });
+  assert.equal((await login(u.cedula, u.password)).status, 200, 'no quedó bloqueada');
+});
+
+test('fallos desde muchas redes dejan una alerta en la auditoría sin bloquear al dueño', async () => {
+  const u = await crearUsuario();
+  for (let i = 1; i <= 4; i++) {
+    await db.query("INSERT INTO intentos_login (cuenta_id, ip, intentos, primer_fallo_en) VALUES (?, ?, 1, UTC_TIMESTAMP())", [u.cuentaId, `198.51.100.${i}`]);
+  }
+  await login(u.cedula, 'incorrecta1');
+  await login(u.cedula, 'incorrecta1');
+  const [alertas] = await db.query("SELECT detalle FROM auditoria WHERE accion = 'ALERTA' AND entidad = 'cuentas' AND entidad_id = ?", [u.cuentaId]);
+  assert.equal(alertas.length, 1, 'una sola alerta por hora');
+  assert.equal(alertas[0].detalle.intentosDesdeVariasRedes, 5);
+  assert.equal((await login(u.cedula, u.password)).status, 200, 'el dueño sigue entrando');
+});
+
+test('la purga borra los intentos viejos sin bloqueo vigente', async () => {
+  const { purgarIntentosViejos } = require('../../src/controllers/authController');
+  const u = await crearUsuario();
+  await db.query(
+    `INSERT INTO intentos_login (cuenta_id, ip, intentos, updated_at, bloqueado_hasta) VALUES
+     (?, '192.0.2.1', 1, UTC_TIMESTAMP() - INTERVAL 40 DAY, NULL),
+     (?, '192.0.2.2', 1, UTC_TIMESTAMP() - INTERVAL 1 DAY, NULL),
+     (?, '192.0.2.3', 0, UTC_TIMESTAMP() - INTERVAL 40 DAY, UTC_TIMESTAMP() + INTERVAL 10 MINUTE)`,
+    [u.cuentaId, u.cuentaId, u.cuentaId]
+  );
+  assert.ok((await purgarIntentosViejos()) >= 1);
+  const [filas] = await db.query('SELECT ip FROM intentos_login WHERE cuenta_id = ? ORDER BY ip', [u.cuentaId]);
+  assert.deepEqual(filas.map((f) => f.ip), ['192.0.2.2', '192.0.2.3']);
+});
