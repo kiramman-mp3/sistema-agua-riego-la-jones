@@ -13,7 +13,8 @@
     "db:drop": "node src/db/cli.js drop",
     "db:seed": "node src/db/cli.js seed",
     "db:seed-noticias": "node src/db/cli.js seed-noticias",
-    "test": "node --test --test-concurrency=1 \"test/**/*.test.js\""
+    "test": "node --test --test-concurrency=1 \"test/**/*.test.js\"",
+    "test:cobertura": "node --test --test-concurrency=1 --experimental-test-coverage \"test/**/*.test.js\""
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
