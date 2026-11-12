@@ -4,7 +4,7 @@ const env = require('../config/env');
 const { registrarAuditoria } = require('../services/auditService');
 const { withTransaction } = require('../shared/transaction');
 const { firmarToken, ALCANCE_CAMBIO_PASSWORD } = require('../middlewares/authMiddleware');
-const { compararPassword, hashPassword, problemaConPassword, HASH_FICTICIO } = require('../shared/passwords');
+const { compararPassword, hashPassword, necesitaRehash, problemaConPassword, HASH_FICTICIO } = require('../shared/passwords');
 const { badRequest, unauthorized, notFound } = require('../shared/errors');
 
 const MAX_INTENTOS = 5;
@@ -164,6 +164,11 @@ async function login(req, res) {
   }
 
   await db.query('UPDATE cuentas SET ultimo_acceso = UTC_TIMESTAMP() WHERE id = ?', [cuenta.cuenta_id]);
+  // Un hash bcrypt anterior se reemplaza por scrypt con la contraseña que acaba de comprobarse. No cambia
+  // password_updated_at: las sesiones abiertas siguen valiendo.
+  if (necesitaRehash(cuenta.password_hash)) {
+    await db.query('UPDATE cuentas SET password_hash = ? WHERE id = ?', [await hashPassword(password), cuenta.cuenta_id]);
+  }
   // Entrar bien limpia los intentos de esta IP; los bloqueos de otras IP siguen vigentes.
   await db.query('DELETE FROM intentos_login WHERE cuenta_id = ? AND ip = ?', [cuenta.cuenta_id, ip]);
 
