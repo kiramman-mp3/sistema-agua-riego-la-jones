@@ -85,7 +85,7 @@ test('genera una obligación por usuario activo con lote y repetir no duplica', 
 
   const resumen = await request(app).get('/api/financiero/agua-anual/resumen?anio=2026').set(auth(admin));
   assert.equal(resumen.status, 200);
-  assert.deepEqual(resumen.body.data, { anio: 2026, emitidas: 2, pagadas: 0, pendientes: 2, total: 20, recaudado: 0 });
+  assert.deepEqual(resumen.body.data, { anio: 2026, emitidas: 2, pagadas: 0, pendientes: 2, total: 20, recaudado: 0, lotesSinSuperficie: 0, lotesSuperficieProvisional: 0 });
   assert.equal((await request(app).get('/api/financiero/agua-anual/resumen').set(auth(usuario))).status, 403);
 });
 

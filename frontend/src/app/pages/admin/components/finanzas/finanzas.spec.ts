@@ -400,6 +400,33 @@ describe('Pago anual de agua', () => {
     expect(c.valor()).toBeNull();
   });
 
+  it('avisa cuántos lotes tienen la superficie provisional de demostración', () => {
+    configurar({
+      getResumenAnualAgua: () =>
+        of({
+          status: 'OK',
+          data: {
+            anio: 2026,
+            emitidas: 0,
+            pagadas: 0,
+            pendientes: 0,
+            total: 0,
+            recaudado: 0,
+            lotesSinSuperficie: 0,
+            lotesSuperficieProvisional: 2,
+          },
+        }),
+      generarObligacionesAnualesAgua: () => of({ status: 'OK' as const, data: previa }),
+    });
+    const fixture = TestBed.createComponent(FacturacionAnualComponent);
+    fixture.detectChanges();
+    const texto = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(texto).toContain('2 lotes tienen la superficie provisional de demostración');
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('a[href="/admin/usuarios/lotes"]'),
+    ).not.toBeNull();
+  });
+
   it('si hay lotes sin superficie no ofrece emitir, los lista y permite completarlos', () => {
     const sinSuperficie = [
       { id: 9, codigo: 'LJA-009', sector_nombre: 'La Jones', titular: 'Ana Paz' },

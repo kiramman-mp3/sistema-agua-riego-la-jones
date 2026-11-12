@@ -34,6 +34,14 @@
     } @else if (cargando() && !resumen()) {
       <div class="skeleton skeleton--card" style="height: 140px" aria-live="polite"></div>
     } @else if (resumen(); as r) {
+      @if (r.lotesSuperficieProvisional) {
+        <div class="alert alert--warning" role="note" style="margin-top: 0.75rem">
+          {{ r.lotesSuperficieProvisional }}
+          {{ r.lotesSuperficieProvisional === 1 ? 'lote tiene' : 'lotes tienen' }} la superficie
+          provisional de demostración (1 ha). Corríjala en el
+          <a routerLink="/admin/usuarios/lotes">catastro de lotes</a> antes de emitir el cobro.
+        </div>
+      }
       @if (r.emitidas) {
         <div class="summary" style="margin-top: 0.75rem">
           <div class="summary__row">

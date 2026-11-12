@@ -307,6 +307,10 @@ export interface ResumenAnualAgua {
   pendientes: number;
   total: number;
   recaudado: number;
+  /** Lotes con titular sin superficie: bloquean la emisión. */
+  lotesSinSuperficie?: number;
+  /** Lotes con la superficie provisional de demostración (1 ha) que hay que corregir. */
+  lotesSuperficieProvisional?: number;
 }
 
 export const MESES = [
