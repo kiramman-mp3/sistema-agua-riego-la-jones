@@ -66,6 +66,18 @@ const celular = z.preprocess(vacioANull, z.string().trim().regex(/^09\d{8}$/, 'E
 const telefono = z.preprocess(vacioANull, z.string().trim().regex(/^0[2-7]\d{7}$/, 'El teléfono fijo debe tener 9 dígitos (ej. 032870112).').nullish()).transform((v) => v ?? null);
 const email = z.preprocess(vacioANull, z.string().trim().toLowerCase().email('Correo electrónico inválido.').max(150).nullish()).transform((v) => v ?? null);
 
+/**
+ * En una edición parcial deja solo los campos que llegaron en el cuerpo. Los esquemas convierten un texto
+ * opcional ausente en null; sin este filtro, omitir un campo lo borraría en lugar de conservar su valor.
+ */
+function soloEnviados(datos, cuerpo) {
+  const enviados = {};
+  for (const [campo, valor] of Object.entries(datos)) {
+    if (cuerpo && Object.hasOwn(cuerpo, campo)) enviados[campo] = valor;
+  }
+  return enviados;
+}
+
 const paginacion = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(25)
@@ -73,5 +85,5 @@ const paginacion = z.object({
 
 module.exports = {
   z, esCedulaValida, textoOpcional, id, idParam, cedula, fecha, fechaOpcional, fechaNacimientoOpcional, fechaMaximaNacimiento, EDAD_MINIMA, hora,
-  dinero, dineroCon, montoPositivo, celular, telefono, email, paginacion
+  dinero, dineroCon, montoPositivo, celular, telefono, email, paginacion, soloEnviados
 };

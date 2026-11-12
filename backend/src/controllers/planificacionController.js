@@ -85,7 +85,7 @@ async function addActividadPlan(req, res) {
 
 async function updateActividadPlan(req, res) {
   const { planId, actividadId } = actividadParam.parse(req.params);
-  const datos = actividadUpdateSchema.parse(req.body);
+  const datos = s.soloEnviados(actividadUpdateSchema.parse(req.body), req.body);
 
   const [filas] = await db.query(
     'SELECT a.*, p.estado AS plan_estado FROM actividades_plan a JOIN planes_anuales p ON p.id = a.plan_id WHERE a.id = ? AND a.plan_id = ?',

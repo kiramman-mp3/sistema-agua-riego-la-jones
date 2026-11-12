@@ -576,3 +576,18 @@ test('el subtipo elegido al crear la asamblea se guarda aunque el título no lo 
   const [[fila]] = await db.query('SELECT subtipo_asamblea FROM eventos WHERE id = ?', [sinSubtipo.body.eventoId]);
   assert.equal(fila.subtipo_asamblea, 'EXTRAORDINARIA', 'sin subtipo se deduce del título');
 });
+
+test('editar solo un campo de un evento conserva los demás', async () => {
+  const crear = await request(app).post('/api/eventos').set(auth(admin)).send({
+    tipo: 'ASAMBLEA', titulo: 'Asamblea con lugar propio', descripcion: 'Orden del día', lugar: 'Casa comunal',
+    fecha: '2099-02-10', hora_inicio: '09:00', hora_fin: '11:00', genera_multa_ausencia: false
+  });
+  assert.equal(crear.status, 201, JSON.stringify(crear.body));
+  const id = crear.body.eventoId;
+  assert.equal((await request(app).put(`/api/eventos/${id}`).set(auth(admin)).send({ titulo: 'Asamblea renombrada' })).status, 200);
+  const [[evento]] = await db.query('SELECT titulo, descripcion, lugar, hora_fin FROM eventos WHERE id = ?', [id]);
+  assert.deepEqual(
+    { ...evento, hora_fin: String(evento.hora_fin).slice(0, 5) },
+    { titulo: 'Asamblea renombrada', descripcion: 'Orden del día', lugar: 'Casa comunal', hora_fin: '11:00' }
+  );
+});

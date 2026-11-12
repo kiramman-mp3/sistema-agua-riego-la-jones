@@ -10,7 +10,7 @@ const documentos = require('../services/documentosEventoService');
 const { escribirListaAsistencia } = require('../services/listaAsistenciaPdf');
 const { withTransaction } = require('../shared/transaction');
 const { badRequest, notFound } = require('../shared/errors');
-const { idParam } = require('../shared/schemas');
+const { idParam, soloEnviados } = require('../shared/schemas');
 const { z } = require('zod');
 const {
   listarSchema, pasadosSchema, crearSchema, actualizarSchema, puntosSchema, documentoSchema, cambioEstadoSchema
@@ -66,7 +66,7 @@ async function createEvento(req, res) {
 /** Actualizar datos generales de una asamblea o minga antes de que finalice. */
 async function updateEvento(req, res) {
   const { id } = idParam.parse(req.params);
-  const datos = actualizarSchema.parse(req.body);
+  const datos = soloEnviados(actualizarSchema.parse(req.body), req.body);
   const resultado = await conAuditoria(req, (conexion) => eventos.actualizarEvento(conexion, id, datos), (r) => ({
     accion: 'ACTUALIZAR', entidad: 'eventos', entidadId: id, detalle: { tipo: r.tipo, titulo: r.titulo, fecha: r.fecha }
   }));
