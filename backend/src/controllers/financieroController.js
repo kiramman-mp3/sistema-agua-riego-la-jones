@@ -159,16 +159,16 @@ async function getObligacionesMultas(req, res) {
  * No se emiten años futuros: la obligación de un año se genera cuando ese año ya empezó.
  */
 async function generarObligacionesAnualesAgua(req, res) {
-  const { anio, valor_total: valorTotal, simular } = generarAnualAguaSchema.parse(req.body);
+  const { anio, valor_hectarea: valorHectarea, simular } = generarAnualAguaSchema.parse(req.body);
   if (anio > Number(hoy().slice(0, 4))) throw badRequest('No se pueden emitir obligaciones de años futuros.');
 
-  const resultado = await conAuditoria(req, (conexion) => finanzas.generarObligacionesAnualesAgua(conexion, { anio, valorTotal, simular }),
+  const resultado = await conAuditoria(req, (conexion) => finanzas.generarObligacionesAnualesAgua(conexion, { anio, valorHectarea, simular }),
     (r) => (simular || !r.generadas ? null : {
       accion: 'CREAR', entidad: 'obligacion_anual_agua',
-      detalle: { anio, valor: r.valor, generadas: r.generadas, existentes: r.existentes, total: r.total }
+      detalle: { anio, valorHectarea: r.valorHectarea, hectareas: r.hectareas, generadas: r.generadas, existentes: r.existentes, total: r.total }
     }));
   const message = simular
-    ? `Se emitirían ${resultado.generadas} obligaciones de $${resultado.valor.toFixed(2)} (total $${resultado.total.toFixed(2)}).`
+    ? `Se emitirían ${resultado.generadas} obligaciones por ${resultado.hectareas} ha a $${resultado.valorHectarea.toFixed(2)} por hectárea (total $${resultado.total.toFixed(2)}).`
     : `Se generaron ${resultado.generadas} obligaciones del ${anio}; ${resultado.existentes} ya existían.`;
   return res.status(simular ? 200 : 201).json({ status: 'OK', message, data: resultado });
 }
