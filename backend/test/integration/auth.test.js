@@ -61,9 +61,13 @@ test('una cuenta inactiva no puede iniciar sesión ni usar tokens previos', asyn
 
 test('no existen alias de inicio de sesión: un administrador solo entra con su cédula', async () => {
   const admin = await crearUsuario({ rol: 'ADMIN' });
-  for (const alias of ['admin', 'ADMIN', '1800000001']) {
-    assert.equal((await login(alias, admin.password)).status, 401, `el alias ${alias} no debe iniciar sesión`);
+  // Lo que no es una cédula de 10 dígitos se rechaza antes de buscar la cuenta.
+  for (const alias of ['admin', 'ADMIN']) {
+    const res = await login(alias, admin.password);
+    assert.equal(res.status, 400, `el alias ${alias} no debe iniciar sesión`);
+    assert.match(res.body.message, /cédula de 10 dígitos/);
   }
+  assert.equal((await login('1800000001', admin.password)).status, 401, 'una cédula ajena no inicia sesión');
   // Los intentos con alias no cuentan contra la cuenta del administrador.
   const [[{ intentos }]] = await db.query('SELECT COUNT(*) AS intentos FROM intentos_login WHERE cuenta_id = ?', [admin.cuentaId]);
   assert.equal(intentos, 0);
