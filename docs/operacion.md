@@ -158,7 +158,7 @@ En producción el backend escribe **una línea JSON por evento** en la salida es
 VIGILAR_WEBHOOK=https://hooks.slack.com/services/XXX npm run vigilar
 ```
 
-El webhook recibe `{ "text": "...", "content": "..." }`, compatible con Slack, Discord y Mattermost. Variables opcionales: `VIGILAR_URL`, `VIGILAR_INTERVALO`, `VIGILAR_FALLOS` (3 fallos seguidos antes de avisar), `VIGILAR_RESPALDO_HORAS`. Con `--una-vez` hace una sola comprobación y sale con código 1 si falla, para usarlo desde cron.
+El webhook recibe `{ "text": "...", "content": "..." }`, compatible con Slack, Discord y Mattermost. Variables opcionales: `VIGILAR_URL`, `VIGILAR_INTERVALO`, `VIGILAR_FALLOS` (3 fallos seguidos antes de avisar), `VIGILAR_RESPALDO_HORAS`, `VIGILAR_DISCO_MIN_GB` (2: avisa con menos espacio libre en el disco del proyecto o de `backups/`), `VIGILAR_LENTITUD_MS` (2000: avisa si `/api/health` tarda más) y `VIGILAR_ERRORES_HORA` (20: avisa si hubo esa cantidad de errores 5xx en la última hora; el backend solo informa ese dato a consultas desde el mismo equipo). Cada aviso que no es una caída se envía una vez y vuelve a enviarse solo si el problema desaparece y reaparece. Para dejarlo siempre activo use [`deploy/junta-vigilante.service.example`](../deploy/junta-vigilante.service.example). Con `--una-vez` hace una sola comprobación y sale con código 1 si falla, para usarlo desde cron.
 
 Conviene además un monitor **externo** (por ejemplo UptimeRobot, gratuito) que consulte `https://su-dominio/api/health`: el vigilante corre en el mismo equipo y no puede avisar si el equipo entero se apaga.
 
