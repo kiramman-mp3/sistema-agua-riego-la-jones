@@ -43,3 +43,12 @@ test('sin page ni limit conserva el comportamiento anterior y valida los paráme
   assert.equal((await pagina(0, 2)).status, 400);
   assert.equal((await pagina(1, 101)).status, 400);
 });
+
+test('la auditoría tiene índices por fecha y por acción y fecha (AP-17)', async () => {
+  const [indices] = await db.query(
+    "SELECT DISTINCT INDEX_NAME AS nombre FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'auditoria'"
+  );
+  const nombres = indices.map((i) => i.nombre);
+  assert.ok(nombres.includes('idx_auditoria_fecha'));
+  assert.ok(nombres.includes('idx_auditoria_accion_fecha'));
+});
