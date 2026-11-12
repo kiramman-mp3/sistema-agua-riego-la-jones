@@ -34,6 +34,9 @@ app.use(requestLogger());
 
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'same-site' },
+  // Los mosaicos de OpenStreetMap exigen la cabecera Referer (su política de uso bloquea las peticiones sin ella).
+  // Solo se envía el origen del sitio, nunca la ruta ni la consulta.
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
   // Solo lo que usa la aplicación: mapas de OpenStreetMap, PDFs y QR generados en el navegador.
   contentSecurityPolicy: {
     directives: {
