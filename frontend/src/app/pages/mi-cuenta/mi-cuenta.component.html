@@ -381,18 +381,15 @@
         <div class="card payment-info-card">
           <h4><i class="ri-bank-card-line" aria-hidden="true"></i> Puntos de Pago Autorizados</h4>
           <p class="caption">
-            Para pagar sus valores pendientes, acérquese a la recaudación de la Junta o haga una
-            transferencia bancaria:
+            Los pagos se reciben solo por transferencia bancaria. Después de transferir, entregue o
+            envíe el comprobante a la Junta para que la directiva registre su pago.
           </p>
           <ul class="payment-list">
             <li>
-              <strong>Recaudación Presencial:</strong> Complejo PROMACERO, Sector La Merced (Lunes a
-              Viernes de 08:00 a 16:00).
+              <strong>Transferencia Bancaria:</strong> {{ cuenta.tipo }} {{ cuenta.banco }} N°
+              {{ cuenta.numero }} — {{ cuenta.titular }} (RUC: {{ cuenta.ruc }}).
             </li>
-            <li>
-              <strong>Transferencia Bancaria:</strong> Cuenta de Ahorros Banco del Pichincha N°
-              2200112233 — Junta de Agua La Jones (RUC: 1890123456001).
-            </li>
+            <li><strong>Entrega del comprobante:</strong> {{ sede }} ({{ atencion }}).</li>
           </ul>
         </div>
       }

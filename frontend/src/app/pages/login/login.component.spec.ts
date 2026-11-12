@@ -206,3 +206,15 @@ describe('Login con verificación en dos pasos', () => {
     expect(component.requiereTotp).toBe(false);
   });
 });
+
+describe('Login solo con cédula', () => {
+  it('rechaza lo que no es una cédula de 10 dígitos sin llamar al servidor', () => {
+    const login = vi.fn();
+    const { component } = crear({ login });
+    component.usuario = 'admin';
+    component.password = 'Canal-Matriz-0417';
+    component.iniciarSesion();
+    expect(component.errorMensaje).toContain('cédula de 10 dígitos');
+    expect(login).not.toHaveBeenCalled();
+  });
+});

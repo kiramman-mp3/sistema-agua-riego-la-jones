@@ -6,7 +6,7 @@ test('el administrador inicia sesión y se guarda la sesión', async ({ page }) 
   const { admin, password } = JSON.parse(fs.readFileSync(ARCHIVO_CREDENCIALES, 'utf8'));
 
   await page.goto('/login');
-  await page.getByLabel('Usuario o Cédula').fill(admin.cedula);
+  await page.getByLabel('Cédula', { exact: false }).fill(admin.cedula);
   await page.getByLabel(/^\s*Contraseña\s*\*?\s*$/).fill(password);
   // Con "Recordar mi sesión" la cookie de sesión es persistente y Playwright puede reutilizarla.
   await page.getByLabel('Recordar mi sesión').check();

@@ -25,6 +25,18 @@ export interface DatoContacto {
 export const SEDE_JUNTA = 'Complejo PROMACERO, Sector La Merced';
 export const ATENCION_JUNTA = 'Sábados de 08:00 a 12:00';
 
+/**
+ * Cuenta para el pago por transferencia. DATOS SUPUESTOS: banco, número de cuenta, titular y RUC son de
+ * ejemplo y deben confirmarse con la tesorería de la Junta antes de publicarse (ver docs/OBSERVACIONES.md).
+ */
+export const CUENTA_BANCARIA_JUNTA = {
+  banco: 'Banco del Pichincha',
+  tipo: 'Cuenta de Ahorros',
+  numero: '2200112233',
+  titular: 'Junta de Agua La Jones',
+  ruc: '1890123456001',
+};
+
 export const INFORMACION_JUNTA = {
   nombre: 'Junta de Agua y Riego "La Jones"',
   descripcion:
