@@ -5,8 +5,9 @@
         <i class="ri-price-tag-3-line" aria-hidden="true"></i> Tarifas
       </h3>
       <p class="fin-panel__desc">
-        La facturación mensual usa la tarifa de agua vigente el primer día de cada mes. Al registrar
-        una tarifa nueva, la anterior deja de regir el día previo.
+        El pago anual de agua se cobra por hectárea: cada lote paga el valor por hectárea vigente el
+        1 de enero del año por sus hectáreas (m² ÷ 10.000). Al registrar una tarifa nueva, la
+        anterior deja de regir el día previo.
       </p>
     </div>
     <button
@@ -37,7 +38,9 @@
           <span class="stat-tile__label">{{ c.nombre }}</span>
           @if (c.tarifa_actual !== null) {
             <span class="stat-tile__value money">{{ c.tarifa_actual | moneda }}</span>
-            <span class="stat-tile__hint">Vigente hoy</span>
+            <span class="stat-tile__hint">{{
+              c.codigo === 'AGUA_ANUAL' ? 'Por hectárea · vigente hoy' : 'Vigente hoy'
+            }}</span>
           } @else {
             <span class="stat-tile__value text-muted">—</span>
             <span class="stat-tile__hint">Sin tarifa vigente</span>
