@@ -133,6 +133,25 @@ test('la migración de superficie da 1 ha provisional a los lotes sin ella, sin 
   assert.deepEqual(await leer(medido.insertId), { superficie_m2: 2500, observacion: null });
 });
 
+test('en producción la migración de superficie no inventa hectáreas: solo deja una nota', async () => {
+  const { helpers } = require('../../src/db/migrator');
+  const migracion = require('../../database/migrations/031_lotes_superficie_provisional');
+  const { crearSector } = require('../helpers/fixtures');
+  const sectorId = await crearSector('Sector migración producción');
+  const [vacio] = await db.query("INSERT INTO lotes (sector_id, codigo) VALUES (?, 'MIG-P01')", [sectorId]);
+  const entorno = process.env.NODE_ENV;
+  const conexion = await db.getConnection();
+  try {
+    process.env.NODE_ENV = 'production';
+    await migracion.up(conexion, helpers);
+  } finally {
+    process.env.NODE_ENV = entorno;
+    conexion.release();
+  }
+  const [[lote]] = await db.query('SELECT superficie_m2, observacion FROM lotes WHERE id = ?', [vacio.insertId]);
+  assert.deepEqual(lote, { superficie_m2: null, observacion: 'Falta registrar la superficie del lote.' });
+});
+
 test('el esquema incluye las columnas que usa el código', async () => {
   const [columnas] = await db.query(`SELECT TABLE_NAME AS t, COLUMN_NAME AS c FROM information_schema.COLUMNS
     WHERE TABLE_SCHEMA = DATABASE()`);
