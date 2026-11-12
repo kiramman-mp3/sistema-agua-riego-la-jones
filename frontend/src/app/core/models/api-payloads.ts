@@ -224,6 +224,10 @@ export interface PersonaListado extends PersonaItem {
   rol: 'ADMIN' | 'USUARIO' | null;
   /** Sectores de los lotes del usuario, separados por coma. */
   sector_nombre?: string | null;
+  /** Hectáreas de todos sus lotes (m² ÷ 10.000). */
+  hectareas_total?: number;
+  /** Pago anual de agua que le corresponde con la tarifa por hectárea vigente; null sin tarifa. */
+  valor_anual_agua?: number | null;
 }
 
 /** Cuenta con el inicio de sesión bloqueado por intentos fallidos (GET /personas/cuentas-bloqueadas). */
