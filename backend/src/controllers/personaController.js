@@ -403,7 +403,7 @@ async function deletePersona(req, res) {
     const [[{ lotesCount }]] = await conexion.query('SELECT COUNT(*) AS lotesCount FROM persona_lotes WHERE persona_id = ?', [id]);
     const [[{ obligCount }]] = await conexion.query('SELECT COUNT(*) AS obligCount FROM obligaciones WHERE persona_id = ?', [id]);
     const [[{ obligAguaCount }]] = await conexion.query('SELECT COUNT(*) AS obligAguaCount FROM obligacion_anual_agua WHERE persona_id = ?', [id]);
-    const [[{ asistenciasCount }]] = await conexion.query('SELECT COUNT(*) AS asistenciasCount FROM asistencias_eventos WHERE persona_id = ?', [id]);
+    const [[{ asistenciasCount }]] = await conexion.query('SELECT COUNT(*) AS asistenciasCount FROM asistencias WHERE persona_id = ?', [id]);
     const [[{ turnosCount }]] = await conexion.query('SELECT COUNT(*) AS turnosCount FROM turnos_riego WHERE persona_id = ?', [id]);
     const [[{ pagosCount }]] = await conexion.query('SELECT COUNT(*) AS pagosCount FROM pagos WHERE persona_id = ?', [id]);
 
