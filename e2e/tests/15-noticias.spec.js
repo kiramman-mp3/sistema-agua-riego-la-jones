@@ -334,7 +334,7 @@ test.describe('administración: edición y baja', () => {
     const publico = await contexto.newPage();
     await publico.goto('/noticias');
     await expect(publico.getByText(TITULO_EDITADO)).toHaveCount(0);
-    await expect(publico.getByText('8 noticias publicadas')).toBeVisible();
+    await expect(publico.locator('.resultados__resumen')).toContainText('8 noticias');
     await expect(tarjetas(publico).first()).toContainText('Minga de limpieza del canal matriz antes del verano');
     await contexto.close();
   });
