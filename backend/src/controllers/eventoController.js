@@ -3,7 +3,7 @@
  * (eventosService, documentosEventoService, listaAsistenciaPdf), registran la auditoría y responden.
  */
 const db = require('../config/db');
-const { registrarAuditoria } = require('../services/auditService');
+const { registrarAuditoria, conAuditoria } = require('../services/auditService');
 const archivos = require('../services/documentStorage');
 const eventos = require('../services/eventosService');
 const documentos = require('../services/documentosEventoService');
@@ -56,11 +56,10 @@ async function getEventoById(req, res) {
 /** Crear asamblea o minga (con sus puntos del orden del día, en una sola transacción). */
 async function createEvento(req, res) {
   const datos = crearSchema.parse(req.body);
-  const { eventoId, valorMulta, puntos } = await withTransaction((conexion) => eventos.crearEvento(conexion, datos, req.user.cuentaId));
-  await registrarAuditoria({
-    cuentaId: req.user.cuentaId, accion: 'CREAR', entidad: 'eventos', entidadId: eventoId, ip: req.ip,
-    detalle: { tipo: datos.tipo, titulo: datos.titulo, fecha: datos.fecha, valorMulta, puntos, sectorId: datos.sector_id ?? null }
-  });
+  const { eventoId } = await conAuditoria(req, (conexion) => eventos.crearEvento(conexion, datos, req.user.cuentaId), (r) => ({
+    accion: 'CREAR', entidad: 'eventos', entidadId: r.eventoId,
+    detalle: { tipo: datos.tipo, titulo: datos.titulo, fecha: datos.fecha, valorMulta: r.valorMulta, puntos: r.puntos, sectorId: datos.sector_id ?? null }
+  }));
   return res.status(201).json({ status: 'OK', message: 'Evento registrado exitosamente.', eventoId });
 }
 
@@ -68,15 +67,9 @@ async function createEvento(req, res) {
 async function updateEvento(req, res) {
   const { id } = idParam.parse(req.params);
   const datos = actualizarSchema.parse(req.body);
-  const resultado = await withTransaction((conexion) => eventos.actualizarEvento(conexion, id, datos));
-  await registrarAuditoria({
-    cuentaId: req.user.cuentaId,
-    accion: 'ACTUALIZAR',
-    entidad: 'eventos',
-    entidadId: id,
-    ip: req.ip,
-    detalle: { tipo: resultado.tipo, titulo: resultado.titulo, fecha: resultado.fecha }
-  });
+  const resultado = await conAuditoria(req, (conexion) => eventos.actualizarEvento(conexion, id, datos), (r) => ({
+    accion: 'ACTUALIZAR', entidad: 'eventos', entidadId: id, detalle: { tipo: r.tipo, titulo: r.titulo, fecha: r.fecha }
+  }));
   return res.json({ status: 'OK', message: 'Evento actualizado exitosamente.', data: resultado });
 }
 
@@ -84,8 +77,9 @@ async function updateEvento(req, res) {
 async function savePuntosAsamblea(req, res) {
   const { id } = idParam.parse(req.params);
   const { puntos } = puntosSchema.parse(req.body);
-  const { data } = await withTransaction((conexion) => eventos.guardarPuntos(conexion, id, puntos));
-  await registrarAuditoria({ cuentaId: req.user.cuentaId, accion: 'MODIFICAR', entidad: 'puntos_asamblea', entidadId: id, ip: req.ip, detalle: { puntos: data.length } });
+  const { data } = await conAuditoria(req, (conexion) => eventos.guardarPuntos(conexion, id, puntos), (r) => ({
+    accion: 'MODIFICAR', entidad: 'puntos_asamblea', entidadId: id, detalle: { puntos: r.data.length }
+  }));
   return res.json({ status: 'OK', message: 'Puntos del orden del día y actas guardados correctamente.', data, puntos: data });
 }
 
@@ -93,16 +87,10 @@ async function savePuntosAsamblea(req, res) {
 async function cambiarEstado(req, res) {
   const { id } = idParam.parse(req.params);
   const { estado } = cambioEstadoSchema.parse(req.body);
-  const resultado = await withTransaction(async (conexion) => {
+  const resultado = await conAuditoria(req, async (conexion) => {
     const evento = await eventos.obtenerEvento(conexion, id);
     return eventos.cambiarEstado(conexion, evento, estado);
-  });
-  if (resultado.cambiado) {
-    await registrarAuditoria({
-      cuentaId: req.user.cuentaId, accion: 'MODIFICAR', entidad: 'eventos', entidadId: id, ip: req.ip,
-      detalle: { estadoAnterior: resultado.estadoAnterior, nuevoEstado: estado }
-    });
-  }
+  }, (r) => r.cambiado && { accion: 'MODIFICAR', entidad: 'eventos', entidadId: id, detalle: { estadoAnterior: r.estadoAnterior, nuevoEstado: estado } });
   return res.json({
     status: 'OK',
     message: resultado.cambiado ? `Estado actualizado a ${estado}.` : 'El evento ya tiene ese estado.',
@@ -123,27 +111,23 @@ async function getAsistencias(req, res) {
 /** Registrar o corregir la asistencia de los usuarios mientras el evento está abierto. */
 async function registrarAsistencias(req, res) {
   const { id } = idParam.parse(req.params);
-  const { registradas } = await withTransaction(async (conexion) => {
+  const { registradas } = await conAuditoria(req, async (conexion) => {
     const evento = await eventos.obtenerEvento(conexion, id);
     return eventos.registrarAsistencias(conexion, evento, req.body?.asistencias, req.user.cuentaId);
-  });
-  await registrarAuditoria({ cuentaId: req.user.cuentaId, accion: 'MODIFICAR', entidad: 'asistencias', entidadId: id, ip: req.ip, detalle: { registradas } });
+  }, (r) => ({ accion: 'MODIFICAR', entidad: 'asistencias', entidadId: id, detalle: { registradas: r.registradas } }));
   return res.json({ status: 'OK', message: 'Asistencias registradas exitosamente.', registradas });
 }
 
 /** Finalizar el evento y generar las multas por ausencia. */
 async function finalizarEventoYGenerarMultas(req, res) {
   const { id } = idParam.parse(req.params);
-  const resultado = await withTransaction(async (conexion) => {
+  // Las multas que genera la finalización y su auditoría se guardan juntas o no se guarda nada.
+  const resultado = await conAuditoria(req, async (conexion) => {
     const evento = await eventos.obtenerEvento(conexion, id);
     return eventos.finalizar(conexion, evento);
+  }, (r) => !r.yaFinalizada && {
+    accion: 'MODIFICAR', entidad: 'eventos', entidadId: id, detalle: { finalizarEvento: true, multasGeneradas: r.multasGeneradas }
   });
-  if (!resultado.yaFinalizada) {
-    await registrarAuditoria({
-      cuentaId: req.user.cuentaId, accion: 'MODIFICAR', entidad: 'eventos', entidadId: id, ip: req.ip,
-      detalle: { finalizarEvento: true, multasGeneradas: resultado.multasGeneradas }
-    });
-  }
   return res.json({
     status: 'OK',
     message: resultado.yaFinalizada
