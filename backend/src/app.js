@@ -57,13 +57,21 @@ app.use(express.urlencoded({ extended: false, limit: '1mb' }));
 // Documentos subidos: el acceso depende del tipo de documento (ver documentoController).
 app.get('/uploads/documentos/:archivo', autenticacionOpcional, servirDocumento);
 
-// Comprobación de salud: verifica también la conexión con la base de datos.
+// Comprobación de salud: verifica también la conexión con la base de datos. Si la base no responde a tiempo
+// devuelve 503 (TIMEOUT), así el proxy y el vigilante detectan una base colgada.
 app.get('/api/health', async (req, res) => {
+  let temporizador;
+  const limite = new Promise((resolver) => {
+    temporizador = setTimeout(() => resolver('TIMEOUT'), env.HEALTH_TIMEOUT_MS);
+  });
   try {
-    await db.query('SELECT 1');
-    res.json({ status: 'OK', database: 'OK', timestamp: new Date().toISOString() });
+    const estado = await Promise.race([db.query('SELECT 1').then(() => 'OK'), limite]);
+    if (estado === 'OK') return res.json({ status: 'OK', database: 'OK', timestamp: new Date().toISOString() });
+    return res.status(503).json({ status: 'ERROR', database: 'TIMEOUT', timestamp: new Date().toISOString() });
   } catch {
-    res.status(503).json({ status: 'ERROR', database: 'UNAVAILABLE', timestamp: new Date().toISOString() });
+    return res.status(503).json({ status: 'ERROR', database: 'UNAVAILABLE', timestamp: new Date().toISOString() });
+  } finally {
+    clearTimeout(temporizador);
   }
 });
 
