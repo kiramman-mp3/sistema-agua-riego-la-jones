@@ -82,6 +82,35 @@ tar -xzf backups/junta-20261026-023000.uploads.tar.gz -C backend
 
 Un respaldo que nunca se restauró no está comprobado. Una vez al mes restaure el último en una base de prueba (`DB_NAME=junta_prueba npm run respaldo -- --restaurar <archivo>`, creando antes la base vacía) y compruebe que los conteos de `personas` y `pagos` coinciden.
 
+### Actualizar y volver atrás
+
+Las versiones estables se publican como etiquetas de git (`v1.1.0`, `v1.2.0`…) en `main`. Para actualizar el servidor a una de ellas:
+
+```bash
+cd /opt/junta-las-jones
+npm run actualizar -- v1.1.0 --reiniciar
+```
+
+El comando se detiene si hay archivos modificados en el servidor o si la versión no existe, y luego:
+
+1. crea un respaldo (`npm run respaldo`); si falla, no cambia nada;
+2. cambia el código a la etiqueta (`git checkout v1.1.0`);
+3. ejecuta `npm run prod:preparar` (dependencias, frontend y migraciones);
+4. con `--reiniciar`, reinicia `junta-backend` con `systemctl` (sin la opción, pide reiniciarlo a mano);
+5. espera a que `/api/health` responda.
+
+Al terminar, o si un paso falla, imprime los comandos para volver a la versión anterior con el respaldo recién creado. Las migraciones no se pueden deshacer: volver atrás es **restaurar ese respaldo** y volver a la etiqueta anterior:
+
+```bash
+sudo systemctl stop junta-backend
+git checkout v1.0.5
+npm run respaldo -- --restaurar backups/junta-AAAAMMDD-HHMMSS.sql.gz --confirmar
+npm run prod:preparar
+sudo systemctl start junta-backend
+```
+
+Los datos registrados entre el respaldo y la vuelta atrás se pierden: si la actualización falla, vuelva atrás antes de que los usuarios vuelvan a operar. Dos procesos no pueden migrar la misma base a la vez: el migrador toma un bloqueo de MySQL (`GET_LOCK`) y el segundo espera hasta 30 s.
+
 ## 2. HTTPS
 
 Sin HTTPS, la contraseña, el token de sesión y las cédulas viajan en claro por la red. El backend no termina TLS: se pone un proxy inverso delante que obtiene el certificado y le reenvía el tráfico por `127.0.0.1`.
