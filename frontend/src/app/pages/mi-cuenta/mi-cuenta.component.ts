@@ -11,6 +11,11 @@ import { FechaLocalPipe } from '../../shared/pipes/fecha-local.pipe';
 import { CurvasNivelComponent } from '../../shared/ui/curvas-nivel.component';
 import { PaginadorComponent } from '../../shared/ui/paginador.component';
 import { iniciales } from '../../core/utils/personas';
+import {
+  ATENCION_JUNTA,
+  CUENTA_BANCARIA_JUNTA,
+  SEDE_JUNTA,
+} from '../inicio/informacion-junta.data';
 import { VerificacionDosPasosComponent } from '../../shared/verificacion-dos-pasos/verificacion-dos-pasos.component';
 
 interface UsuarioResultado {
@@ -39,6 +44,10 @@ interface UsuarioResultado {
 })
 export class MiCuentaComponent implements OnInit {
   readonly iniciales = iniciales;
+  /** Datos de pago (supuestos, ver informacion-junta.data.ts) y horario de atención de la sede. */
+  readonly cuenta = CUENTA_BANCARIA_JUNTA;
+  readonly sede = SEDE_JUNTA;
+  readonly atencion = ATENCION_JUNTA;
 
   cargando = true;
   /** La directiva puede activar la verificación en dos pasos de su cuenta. */
