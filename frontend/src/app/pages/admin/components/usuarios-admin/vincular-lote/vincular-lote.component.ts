@@ -1,6 +1,17 @@
-import { Component, OnInit, computed, inject, input, output, signal } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  computed,
+  effect,
+  inject,
+  input,
+  output,
+  signal,
+  untracked,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { AdminService } from '../../../../../core/services/admin.service';
+import { AdminService, DeudaAguaLote } from '../../../../../core/services/admin.service';
+import { MonedaPipe } from '../../../../../shared/pipes/moneda.pipe';
 import { NotificationService } from '../../../../../core/services/notification.service';
 import { ModalComponent } from '../../../../../shared/ui/modal.component';
 import { LoteItem, PersonaListado } from '../../../../../core/models/api-payloads';
@@ -16,7 +27,7 @@ export const PORCENTAJE_TITULARIDAD = 100;
 @Component({
   selector: 'app-vincular-lote',
   standalone: true,
-  imports: [FormsModule, ...AYUDAS_FORMULARIO, ModalComponent],
+  imports: [FormsModule, MonedaPipe, ...AYUDAS_FORMULARIO, ModalComponent],
   template: `
     @let c = usuario();
     <app-modal
@@ -128,6 +139,21 @@ export const PORCENTAJE_TITULARIDAD = 100;
                 con sus turnos de riego activos.</span
               >
             </div>
+            @if (deuda(); as d) {
+              @if (d.obligaciones.length) {
+                <div class="alert alert--warning" role="alert" animate.enter="reveal-enter">
+                  <i class="ri-money-dollar-circle-line" aria-hidden="true"></i>
+                  <span
+                    >La deuda sigue al lote: sus
+                    <strong>{{ d.obligaciones.length }}</strong> cuota(s) anual(es) de agua
+                    pendiente(s) (años {{ aniosDeuda(d) }}, total
+                    <strong>{{ d.total | moneda }}</strong
+                    >) pasarán a {{ c.nombres }} {{ c.apellidos }}. Las cuotas ya pagadas se quedan
+                    como historial de quien las pagó.</span
+                  >
+                </div>
+              }
+            }
           }
         </div>
         <div class="modal__footer">
@@ -162,6 +188,8 @@ export class VincularLoteComponent implements OnInit {
   readonly loteId = signal<number | null>(null);
   readonly busqueda = signal('');
   readonly sectorId = signal<number | null>(null);
+  /** Cuotas anuales de agua pendientes del lote elegido, cuando tiene otro titular. */
+  readonly deuda = signal<DeudaAguaLote | null>(null);
   tipoRelacion: 'PROPIETARIO' | 'REPRESENTANTE' = 'PROPIETARIO';
 
   /** Sectores que tienen lotes, para el filtro. */
@@ -207,6 +235,27 @@ export class VincularLoteComponent implements OnInit {
       return null;
     return lote.propietario_nombre || lote.propietarios || null;
   });
+
+  constructor() {
+    // Al elegir un lote con otro titular se muestra la deuda de agua que pasará al nuevo.
+    effect(() => {
+      const loteId = this.loteId();
+      const hayTitular = this.titularActual() !== null;
+      untracked(() => {
+        this.deuda.set(null);
+        if (!loteId || !hayTitular) return;
+        this.admin.getDeudaAguaLote(loteId).subscribe({
+          next: (res) => {
+            if (this.loteId() === loteId) this.deuda.set(res.data);
+          },
+        });
+      });
+    });
+  }
+
+  aniosDeuda(d: DeudaAguaLote): string {
+    return d.obligaciones.map((o) => o.anio).join(', ');
+  }
 
   ngOnInit(): void {
     this.admin.getLotes().subscribe({
