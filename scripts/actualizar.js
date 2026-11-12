@@ -6,7 +6,9 @@
  *   npm run actualizar -- v1.1.0 --reiniciar     además reinicia junta-backend con systemctl (Linux)
  *
  * Pasos: árbol de trabajo limpio → respaldo (si falla, se detiene) → git fetch --tags → git checkout <etiqueta>
- * → npm run prod:preparar (dependencias, frontend, migraciones) → reinicio → espera a que /api/health responda.
+ * → npm run prod:preparar -- --instalar (reinstala dependencias, compila el frontend, migra) → reinicio → espera a que
+ * /api/health responda. Reinstalar es obligatorio: una versión nueva puede traer dependencias nuevas y el servidor
+ * ya tiene node_modules de la versión anterior.
  * Si algo falla después del respaldo, imprime los comandos exactos para volver a la versión anterior.
  * Ver docs/operacion.md, sección "Actualizar y volver atrás".
  */
@@ -19,6 +21,8 @@ const args = process.argv.slice(2);
 const etiqueta = args.find((a) => !a.startsWith('--'));
 const reiniciar = args.includes('--reiniciar');
 const servicio = process.env.ACTUALIZAR_SERVICIO || 'junta-backend';
+/** Preparación con reinstalación de dependencias (npm ci): sin --instalar, prod.js conserva los node_modules viejos. */
+const ARGS_PREPARAR = ['run', 'prod:preparar', '--', '--instalar'];
 
 const fallar = (mensaje) => {
   console.error(`\n\x1b[31m[actualizar] ${mensaje}\x1b[0m`);
@@ -44,7 +48,7 @@ function vueltaAtras(anterior, respaldo) {
     `  1. sudo systemctl stop ${servicio}`,
     `  2. git checkout ${anterior}`,
     `  3. npm run respaldo -- --restaurar ${respaldo ? path.relative(raiz, respaldo) : '<respaldo previo>'} --confirmar`,
-    '  4. npm run prod:preparar',
+    '  4. npm run prod:preparar -- --instalar',
     `  5. sudo systemctl start ${servicio}`
   ].join('\n');
 }
@@ -95,7 +99,7 @@ async function main() {
   if (!ejecutar('git', ['checkout', '--quiet', etiqueta])) abortar(`No se pudo cambiar a ${etiqueta}.`);
 
   paso('Preparando dependencias, frontend y base de datos');
-  if (!ejecutar('npm', ['run', 'prod:preparar'])) abortar('La preparación falló.');
+  if (!ejecutar('npm', ARGS_PREPARAR)) abortar('La preparación falló.');
 
   if (reiniciar) {
     paso(`Reiniciando ${servicio}`);
@@ -113,4 +117,6 @@ async function main() {
   console.log(`\n${vueltaAtras(anterior, respaldo)}`);
 }
 
-main().catch((error) => fallar(error.message));
+if (require.main === module) main().catch((error) => fallar(error.message));
+
+module.exports = { ARGS_PREPARAR, vueltaAtras };
