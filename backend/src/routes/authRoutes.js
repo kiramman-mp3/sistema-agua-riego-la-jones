@@ -1,7 +1,8 @@
 const express = require('express');
 const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
 const authController = require('../controllers/authController');
-const { verificarToken, verificarTokenOCambioPassword } = require('../middlewares/authMiddleware');
+const totpController = require('../controllers/totpController');
+const { verificarToken, verificarTokenOCambioPassword, verificarTokenTotp } = require('../middlewares/authMiddleware');
 const env = require('../config/env');
 
 const router = express.Router();
@@ -90,5 +91,38 @@ router.get('/me', verificarToken, authController.getMe);
 router.post('/logout', verificarTokenOCambioPassword, authController.logout);
 
 router.post('/change-password', verificarTokenOCambioPassword, authController.changePassword);
+
+/**
+ * @openapi
+ * /auth/totp/verificar:
+ *   post:
+ *     tags: [Autenticación]
+ *     summary: Segundo paso del inicio de sesión con verificación en dos pasos
+ *     description: Con el token intermedio que devuelve /auth/login (requiereTotp) y el código de 6 dígitos o un código de recuperación, entrega la sesión completa.
+ *     security: [{ bearerAuth: [] }]
+ */
+router.post('/totp/verificar', loginLimiter, verificarTokenTotp, totpController.verificar);
+
+/**
+ * @openapi
+ * /auth/totp/iniciar:
+ *   post:
+ *     tags: [Autenticación]
+ *     summary: Genera el secreto y el código QR para activar la verificación en dos pasos (ADMIN)
+ *     security: [{ bearerAuth: [] }]
+ * /auth/totp/activar:
+ *   post:
+ *     tags: [Autenticación]
+ *     summary: Activa la verificación en dos pasos con el primer código y devuelve los códigos de recuperación
+ *     security: [{ bearerAuth: [] }]
+ * /auth/totp/desactivar:
+ *   post:
+ *     tags: [Autenticación]
+ *     summary: Desactiva la verificación en dos pasos de la propia cuenta (pide la contraseña)
+ *     security: [{ bearerAuth: [] }]
+ */
+router.post('/totp/iniciar', verificarToken, totpController.iniciar);
+router.post('/totp/activar', verificarToken, totpController.activar);
+router.post('/totp/desactivar', verificarToken, totpController.desactivar);
 
 module.exports = router;

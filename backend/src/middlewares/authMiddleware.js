@@ -4,6 +4,8 @@ const db = require('../config/db');
 
 const ALCANCE_COMPLETO = 'COMPLETO';
 const ALCANCE_CAMBIO_PASSWORD = 'CAMBIO_PASSWORD';
+/** Token intermedio tras una contraseña correcta cuando la cuenta tiene verificación en dos pasos. */
+const ALCANCE_VERIFICAR_TOTP = 'VERIFICAR_TOTP';
 
 function rechazar(res, status, message, codigo) {
   return res.status(status).json({ status: 'ERROR', message, ...(codigo ? { codigo } : {}) });
@@ -21,7 +23,7 @@ function leerToken(req) {
  * - el token debe ser posterior al último cambio de contraseña y al último cierre de sesión (revocación),
  * - el rol se toma de la base, así un cambio de rol aplica de inmediato.
  */
-function crearVerificador({ permitirCambioPassword }) {
+function crearVerificador({ permitirCambioPassword = false, soloVerificarTotp = false }) {
   return async (req, res, next) => {
     const token = leerToken(req);
     if (!token) return rechazar(res, 401, 'Acceso no autorizado. Inicie sesión.');
@@ -56,6 +58,10 @@ function crearVerificador({ permitirCambioPassword }) {
     }
 
     const alcance = payload.alcance || ALCANCE_COMPLETO;
+    // El token intermedio de la verificación en dos pasos solo sirve para enviar el código, y solo ese token sirve ahí.
+    if ((alcance === ALCANCE_VERIFICAR_TOTP) !== soloVerificarTotp) {
+      return rechazar(res, 401, soloVerificarTotp ? 'Inicie sesión nuevamente.' : 'Falta el código de verificación. Inicie sesión nuevamente.');
+    }
     if (alcance === ALCANCE_CAMBIO_PASSWORD && !permitirCambioPassword) {
       return rechazar(res, 403, 'Debe cambiar su contraseña temporal antes de continuar.', 'CAMBIO_PASSWORD_REQUERIDO');
     }
@@ -85,6 +91,9 @@ function autenticacionOpcional(req, res, next) {
 /** Acepta también el token temporal emitido para cambiar la contraseña. */
 const verificarTokenOCambioPassword = crearVerificador({ permitirCambioPassword: true });
 
+/** Solo el token intermedio de la verificación en dos pasos (POST /auth/totp/verificar). */
+const verificarTokenTotp = crearVerificador({ soloVerificarTotp: true });
+
 /**
  * Exige que el usuario autenticado tenga uno de los roles indicados.
  * @param {string[]} rolesPermitidos
@@ -105,6 +114,8 @@ const requiere = (roles) => [verificarToken, verificarRol(roles)];
 /** Atajo para las operaciones de la directiva (rol ADMIN). */
 const soloAdmin = requiere(['ADMIN']);
 
+const DURACION = { [ALCANCE_CAMBIO_PASSWORD]: '15m', [ALCANCE_VERIFICAR_TOTP]: '5m' };
+
 function firmarToken(cuenta, { alcance = ALCANCE_COMPLETO } = {}) {
   return jwt.sign(
     {
@@ -115,13 +126,15 @@ function firmarToken(cuenta, { alcance = ALCANCE_COMPLETO } = {}) {
       ts: Date.now()
     },
     env.JWT_SECRET,
-    { algorithm: 'HS256', expiresIn: alcance === ALCANCE_CAMBIO_PASSWORD ? '15m' : env.JWT_EXPIRES_IN }
+    { algorithm: 'HS256', expiresIn: DURACION[alcance] ?? env.JWT_EXPIRES_IN }
   );
 }
 
 module.exports = {
   ALCANCE_COMPLETO,
   ALCANCE_CAMBIO_PASSWORD,
+  ALCANCE_VERIFICAR_TOTP,
+  verificarTokenTotp,
   verificarToken,
   autenticacionOpcional,
   verificarTokenOCambioPassword,

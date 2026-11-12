@@ -87,7 +87,8 @@ async function restablecerPasswordAdmin(conexion, cedulaEntrada) {
   try {
     await conexion.query(
       `UPDATE cuentas SET password_hash = ?, debe_cambiar_password = TRUE, estado = 'ACTIVA',
-              password_updated_at = ?, sesiones_validas_desde = ?
+              password_updated_at = ?, sesiones_validas_desde = ?,
+              totp_secreto = NULL, totp_activo = FALSE, totp_ultimo_paso = NULL, totp_recuperacion = NULL
        WHERE id = ?`,
       [await hashPassword(passwordTemporal), new Date(), new Date(), cuenta.id]
     );
