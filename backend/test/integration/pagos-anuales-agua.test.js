@@ -263,3 +263,24 @@ test('un usuario con múltiples lotes recibe una obligación por cada lote', asy
   const lotesIds = obligaciones.map(o => Number(o.lote_id)).sort((a, b) => a - b);
   assert.deepEqual(lotesIds, [Number(l1.insertId), Number(l2.insertId)].sort((a, b) => a - b));
 });
+
+test('al anular un pago anual de un lote ya transferido, la cuota vuelve al titular actual (AP-10)', async () => {
+  const vendedor = await crearUsuario();
+  const comprador = await crearUsuario();
+  const sector = await crearSector('Sector traspaso anulación');
+  const loteId = await crearLote({ sectorId: sector, personaId: vendedor.personaId, codigo: 'TRA-001', superficie: 10000 });
+  const [o] = await db.query(
+    `INSERT INTO obligacion_anual_agua (persona_id, lote_id, periodo_anio, valor_total, valor_hectarea, superficie_m2, estado, fecha_emision, fecha_vencimiento)
+     VALUES (?, ?, 2031, 30, 30, 10000, 'PENDIENTE', '2031-01-01', '2031-12-31')`,
+    [vendedor.personaId, loteId]
+  );
+  const pago = await pagar({ persona_id: vendedor.personaId, obligacionesIds: [o.insertId], metodo: 'TRANSFERENCIA', referencia: 'TRA-REF-1' });
+  assert.equal(pago.status, 201, JSON.stringify(pago.body));
+  const transferir = await request(app).post(`/api/lotes/${loteId}/vincular-persona`).set(auth(admin)).send({ persona_id: comprador.personaId });
+  assert.equal(transferir.status, 200);
+
+  const anular = await request(app).post(`/api/financiero/agua-anual/pagos/${pago.body.pagoId}/anular`).set(auth(admin)).send({ motivo: 'Depósito rechazado' });
+  assert.equal(anular.status, 200, JSON.stringify(anular.body));
+  const [[cuota]] = await db.query('SELECT persona_id, estado FROM obligacion_anual_agua WHERE id = ?', [o.insertId]);
+  assert.deepEqual({ persona_id: Number(cuota.persona_id), estado: cuota.estado }, { persona_id: comprador.personaId, estado: 'PENDIENTE' });
+});
