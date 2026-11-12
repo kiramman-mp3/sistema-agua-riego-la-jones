@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const env = require('../config/env');
 const db = require('../config/db');
+const { COOKIE_SESION, leerCookie, csrfValido } = require('../shared/cookies');
 
 const ALCANCE_COMPLETO = 'COMPLETO';
 const ALCANCE_CAMBIO_PASSWORD = 'CAMBIO_PASSWORD';
@@ -11,10 +12,20 @@ function rechazar(res, status, message, codigo) {
   return res.status(status).json({ status: 'ERROR', message, ...(codigo ? { codigo } : {}) });
 }
 
+const METODOS_SEGUROS = new Set(['GET', 'HEAD', 'OPTIONS']);
+
+/**
+ * Token de la petición: la cabecera Authorization (clientes de la API, pruebas) o la cookie HttpOnly de sesión
+ * (el navegador). Devuelve { token, porCookie } o null.
+ */
 function leerToken(req) {
   const header = req.headers.authorization;
-  if (typeof header !== 'string' || !header.startsWith('Bearer ')) return null;
-  return header.slice(7).trim() || null;
+  if (typeof header === 'string' && header.startsWith('Bearer ')) {
+    const token = header.slice(7).trim();
+    return token ? { token, porCookie: false } : null;
+  }
+  const cookie = leerCookie(req, COOKIE_SESION);
+  return cookie ? { token: cookie, porCookie: true } : null;
 }
 
 /**
@@ -25,8 +36,14 @@ function leerToken(req) {
  */
 function crearVerificador({ permitirCambioPassword = false, soloVerificarTotp = false }) {
   return async (req, res, next) => {
-    const token = leerToken(req);
-    if (!token) return rechazar(res, 401, 'Acceso no autorizado. Inicie sesión.');
+    const leido = leerToken(req);
+    if (!leido) return rechazar(res, 401, 'Acceso no autorizado. Inicie sesión.');
+    const { token, porCookie } = leido;
+    // Con la sesión en cookie, el navegador la envía solo: una petición que cambia datos debe probar que viene de
+    // esta aplicación con la cabecera X-CSRF-Token.
+    if (porCookie && !METODOS_SEGUROS.has(req.method) && !csrfValido(req)) {
+      return rechazar(res, 403, 'La solicitud no se pudo verificar. Recargue la página e intente de nuevo.', 'CSRF');
+    }
 
     let payload;
     try {

@@ -51,7 +51,8 @@ app.use(helmet({
     }
   }
 }));
-app.use(cors({ origin: env.FRONTEND_URL }));
+// Con credenciales: en desarrollo el frontend (ng serve) corre en otro puerto y la sesión viaja en cookie.
+app.use(cors({ origin: env.FRONTEND_URL, credentials: true }));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: false, limit: '1mb' }));
 
