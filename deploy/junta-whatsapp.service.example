@@ -1,0 +1,25 @@
+# Servicio de WhatsApp (opcional): publica las convocatorias en el grupo de la Junta. Si se detiene, el resto del
+# sistema sigue funcionando. Copie como /etc/systemd/system/junta-whatsapp.service, ajuste rutas y usuario, y ejecute:
+#   sudo systemctl daemon-reload && sudo systemctl enable --now junta-whatsapp
+# Instale sus dependencias sin descargar Chromium (ver docs/operacion.md, sección 4):
+#   cd whatsapp-service && PUPPETEER_SKIP_DOWNLOAD=true npm ci --omit=dev
+# y defina CHROME_BIN en whatsapp-service/.env con la ruta del Chrome o Chromium del sistema.
+# Registro: journalctl -u junta-whatsapp -f
+[Unit]
+Description=Junta de Agua La Jones - servicio de WhatsApp
+After=network.target junta-backend.service
+
+[Service]
+Type=simple
+User=junta
+WorkingDirectory=/opt/junta-las-jones/whatsapp-service
+Environment=PUPPETEER_SKIP_DOWNLOAD=true
+ExecStart=/usr/bin/node src/index.js
+Restart=always
+RestartSec=10
+NoNewPrivileges=true
+ProtectSystem=full
+# La sesión vinculada se guarda en whatsapp-service/.wwebjs_auth: el usuario junta debe poder escribir ahí.
+
+[Install]
+WantedBy=multi-user.target

@@ -171,4 +171,4 @@ Conviene además un monitor **externo** (por ejemplo UptimeRobot, gratuito) que 
 | `extract-zip` (vía `puppeteer`) | Escritura de archivos por enlaces simbólicos en un `.zip` | Solo se ejecuta si puppeteer **descarga** Chromium. El servicio usa el Edge o Chrome instalado (`CHROME_BIN`). Instale con `PUPPETEER_SKIP_DOWNLOAD=true npm ci`. |
 | `zod` 3.x (vía `chromium-bidi`) | Consumo de memoria con colecciones enormes | Solo valida mensajes del protocolo del navegador local, nunca datos de la red. |
 
-El servicio de WhatsApp escucha solo en `127.0.0.1` y exige token. Revise estos avisos de nuevo al actualizar `whatsapp-web.js`.
+El servicio de WhatsApp escucha solo en `127.0.0.1` y exige token. Revise estos avisos de nuevo al actualizar `whatsapp-web.js`. La decisión y sus mitigaciones están en [`architecture/adr/0001-riesgo-aceptado-whatsapp-web-js.md`](architecture/adr/0001-riesgo-aceptado-whatsapp-web-js.md). Para que el servicio arranque con el equipo y se reinicie si se cae, use [`deploy/junta-whatsapp.service.example`](../deploy/junta-whatsapp.service.example).
