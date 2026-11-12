@@ -25,6 +25,7 @@
             "outputPath": "dist/frontend",
             "browser": "src/main.ts",
             "tsConfig": "tsconfig.app.json",
+            "allowedCommonJsDependencies": ["leaflet", "html2canvas", "canvg", "core-js", "raf", "rgbcolor"],
             "inlineStyleLanguage": "scss",
             "assets": [
               {
