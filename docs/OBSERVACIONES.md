@@ -4,6 +4,8 @@ Inconsistencias, limitaciones y puntos no verificados encontrados al preparar la
 
 ## 1. Funciones que existen en el servidor pero no tienen pantalla
 
+El plan para darles pantalla está en [`auditoria/PLAN_PANTALLAS_SOLO_API.md`](auditoria/PLAN_PANTALLAS_SOLO_API.md) (unas 19 horas).
+
 | Función | Endpoint | Efecto para la directiva |
 |---|---|---|
 | Quitar la verificación en dos pasos de otra cuenta (teléfono perdido) | `POST /api/personas/:id/cuenta/totp/desactivar` | Hoy solo la puede hacer quien tenga acceso técnico; también se resuelve con `npm run db:reset-admin` en el servidor |
@@ -16,9 +18,11 @@ La guía no documenta estas funciones como disponibles.
 
 ## 2. Inconsistencias encontradas
 
-- El formulario de inicio de sesión dice "Usuario o Cédula", pero el sistema solo acepta la **cédula**: no existen nombres de usuario.
-- La tarjeta del pie dice "Atención: Sábados de 08:00 a 12:00", mientras que "Mi cuenta → Puntos de Pago Autorizados" dice "Lunes a Viernes de 08:00 a 16:00". Hay que confirmar el horario real con la directiva.
-- "Mi cuenta" menciona "Recaudación Presencial", pero desde la regla RN-01 la caja solo registra pagos por **Transferencia** o **Depósito**; no hay cobro en efectivo.
+- **Corregido (2026-11-13):** el ingreso decía "Usuario o Cédula"; ahora dice **Cédula** y solo acepta 10 dígitos (también lo valida el servidor).
+- **Corregido (2026-11-13):** el horario de atención es el del pie, **sábados de 08:00 a 12:00**, también en "Mi cuenta".
+- **Corregido (2026-11-13):** "Mi cuenta" ya no ofrece "Recaudación Presencial": indica que los pagos son **solo por transferencia bancaria** y dónde entregar el comprobante. La caja de la directiva sigue aceptando **Transferencia** y **Depósito** (ambos con referencia bancaria); si la Junta quiere solo transferencia también en la caja, hay que quitar "Depósito" del formulario de cobro.
+- **Dato supuesto, por confirmar con la tesorería:** la cuenta bancaria que muestra "Mi cuenta" (Cuenta de Ahorros, Banco del Pichincha N° 2200112233, titular Junta de Agua La Jones, RUC 1890123456001) es de ejemplo. Está en un solo lugar, `CUENTA_BANCARIA_JUNTA` en `frontend/src/app/pages/inicio/informacion-junta.data.ts`, para cambiarla cuando se confirme.
+- Las capturas `docs/assets/04-inicio-de-sesion.png` y `docs/assets/40-mi-cuenta.png` se tomaron antes de este cambio y muestran los textos anteriores.
 - El encabezado del PDF del cronograma dice "JUNTA ADMINISTRADORA DE AGUA POTABLE Y RIEGO", y el resto del sistema "Junta de Agua y Riego". Conviene unificar el nombre oficial.
 - La fecha de nacimiento del formulario de usuario se muestra en el formato del navegador (por ejemplo `mm/dd/yyyy` en un navegador en inglés); el sistema guarda la fecha correcta en cualquier caso.
 

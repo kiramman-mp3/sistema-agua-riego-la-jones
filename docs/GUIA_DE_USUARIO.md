@@ -71,7 +71,7 @@ Las imágenes son capturas reales del sistema tomadas con **datos de prueba**: l
 
 1. Abra la dirección del sistema en su navegador.
 2. Pulse **Iniciar Sesión**, arriba a la derecha.
-3. En **Usuario o Cédula**, escriba su número de cédula (10 dígitos, sin guiones).
+3. En **Cédula**, escriba su número de cédula (10 dígitos, sin espacios ni guiones).
 4. En **Contraseña**, escriba su contraseña. El ícono del ojo la muestra u oculta.
 5. Deje marcado **Recordar mi sesión** si usa su propio equipo; desmárquelo en un equipo compartido.
 6. Pulse **Ingresar al Sistema**.
@@ -82,7 +82,7 @@ Las imágenes son capturas reales del sistema tomadas con **datos de prueba**: l
 
 **Consideraciones:**
 
-- Aunque el campo diga "Usuario o Cédula", el sistema solo acepta la cédula.
+- Se ingresa solo con la cédula: no existen nombres de usuario. Si escribe otra cosa, el sistema pide "Ingrese su número de cédula de 10 dígitos".
 - Si escribe mal la contraseña, el mensaje es siempre el mismo: "Credenciales incorrectas o la cuenta no está habilitada o se encuentra bloqueada temporalmente."
 - Tras **5 intentos fallidos en 15 minutos**, la cuenta queda bloqueada **15 minutos desde ese equipo o red**. Desde otra red puede seguir entrando. La directiva puede desbloquearla antes (sección 8.2).
 - "Recordar mi sesión" mantiene la sesión abierta hasta 8 horas aunque cierre el navegador.
@@ -182,7 +182,7 @@ El enlace **Aviso de privacidad** (pie de página y pantalla de ingreso) explica
 
 ![Mi cuenta](assets/40-mi-cuenta.png)
 
-**Consideraciones:** los pagos los registra la directiva. Si pagó y aún aparece pendiente, consulte en la Junta. La sección **Puntos de Pago Autorizados** indica dónde pagar.
+**Consideraciones:** los pagos se reciben **solo por transferencia bancaria**. La sección **Puntos de Pago Autorizados** muestra la cuenta de la Junta y dónde entregar el comprobante (la sede, los sábados de 08:00 a 12:00). La directiva registra el pago; si ya pagó y aún aparece pendiente, entregue o envíe el comprobante a la Junta.
 
 ### Ver mis lotes y turnos
 
@@ -504,7 +504,7 @@ Las confirmaciones (por ejemplo, "Verificación en dos pasos activada.") aparece
 
 ## 12. Preguntas frecuentes
 
-**¿Puedo pagar en efectivo?** No. Los pagos se registran por transferencia o depósito con su número de referencia.
+**¿Puedo pagar en efectivo?** No. Se paga por transferencia bancaria a la cuenta que aparece en Mi cuenta; la directiva registra el pago con el número de referencia.
 
 **¿Cómo se calcula el pago anual de agua?** Valor por hectárea de la tarifa vigente × hectáreas de cada lote (m² ÷ 10.000), redondeado al centavo.
 
