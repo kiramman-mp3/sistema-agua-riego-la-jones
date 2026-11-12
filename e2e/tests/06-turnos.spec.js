@@ -110,7 +110,9 @@ test('el turno se ve en el calendario semanal', async ({ page }) => {
 });
 
 test('la tabla de turnos filtra por sector, día y texto', async ({ page }) => {
-  const { receptor, sector } = leerEstado();
+  const { receptor } = leerEstado();
+  // El lote del receptor se creó en La Merced (03-sectores-y-lotes.spec.js).
+  const sector = 'La Merced';
   await page.goto('/admin/turnos');
 
   await page.getByRole('group', { name: 'Filtrar por sector' }).getByRole('button', { name: sector }).click();
