@@ -42,8 +42,8 @@ Plan de trabajo vigente: corrección de los hallazgos de la auditoría de prepar
 
 ## Sprint 5 — Endurecimiento de sesión · `v1.3.0`
 
-- [ ] TOTP opcional para ADMIN (AP-06).
-- [ ] Sesión en cookie `HttpOnly` (AP-11).
+- [x] TOTP opcional para ADMIN (AP-06).
+- [x] Sesión en cookie `HttpOnly` (AP-11).
 
 ## Fuera de este roadmap
 
@@ -58,4 +58,4 @@ Plan de trabajo vigente: corrección de los hallazgos de la auditoría de prepar
 | 2 | Terminado | 2026-11-13 | 2026-11-13 | |
 | 3 | Terminado | 2026-11-13 | 2026-11-13 | En AP-06 se dejó una alerta en la auditoría y retraso de respuestas en lugar de un aviso en el padrón |
 | 4 | Terminado | 2026-11-13 | 2026-11-13 | Se encontraron y corrigieron dos errores reales: eliminar una persona fallaba siempre (tabla `asistencias_eventos` inexistente) y las ediciones parciales por API borraban campos opcionales |
-| 5 | En curso | 2026-11-13 | | |
+| 5 | Terminado | 2026-11-13 | 2026-11-13 | TOTP opcional (no obligatorio). Ver ADR 0002 |

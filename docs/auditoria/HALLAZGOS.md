@@ -17,12 +17,12 @@ No se encontraron hallazgos CRÍTICOS. La siguiente tabla resume el resto; el de
 | AP-03 | Corregido | `v1.1.0` | `GET_LOCK` en el migrador, `npm run actualizar` con vuelta atrás, `docs/operacion.md` |
 | AP-04 | Corregido | `v1.2.0` | `queueLimit`, `connectTimeout`, tiempo límite de consultas y `/api/health` con 503 `TIMEOUT` |
 | AP-05 | Corregido | `v1.2.0` | Eventos, mingas y lotes registran la auditoría en su transacción |
-| AP-06 | Parcial | `v1.2.0` | Intentos con ventana de 15 min, alerta y retraso ante ataques desde muchas redes. El segundo factor (TOTP) va en la fase 5 |
+| AP-06 | Corregido | `v1.3.0` | Intentos con ventana de 15 min, alerta y retraso ante ataques desde muchas redes (`v1.2.0`) y verificación en dos pasos opcional para ADMIN (`v1.3.0`) |
 | AP-07 | Aceptado | `v1.2.0` | ADR 0001 con mitigaciones |
 | AP-08 | Corregido | `v1.2.0` | Vigilante con disco, lentitud y errores 5xx; unidad `systemd` |
 | AP-09 | Corregido | `v1.2.0` | `FOR UPDATE` en la edición de lotes; además, las ediciones parciales ya no borran campos omitidos |
 | AP-10 | Corregido | `v1.2.0` | |
-| AP-11 | Pendiente | — | Fase 5 |
+| AP-11 | Corregido | `v1.3.0` | Sesión en cookie HttpOnly con CSRF por doble envío (ADR 0002) |
 | AP-12 | Corregido | `v1.2.0` | Purga diaria de intentos viejos |
 | AP-13 | Documentado | `v1.2.0` | Se explica por qué el usuario necesita DDL y un usuario opcional solo de operación |
 | AP-14 | Corregido | `v1.2.0` | `npm update` en los cuatro paquetes; 0 avisos altos en backend y frontend |
