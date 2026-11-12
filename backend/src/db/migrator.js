@@ -69,11 +69,30 @@ function listarMigraciones() {
     .sort();
 }
 
+/** Nombre del bloqueo de MySQL que impide que dos procesos migren la misma base a la vez. */
+const NOMBRE_BLOQUEO = 'junta_migraciones';
+const SEGUNDOS_ESPERA_BLOQUEO = 30;
+
 /**
  * Aplica en orden las migraciones pendientes y las registra en schema_migrations.
+ * Toma un bloqueo con nombre (GET_LOCK) mientras migra: un segundo proceso espera a que el primero
+ * termine y luego encuentra las migraciones ya aplicadas.
  * @param {import('mysql2/promise').Connection} db conexión ya posicionada en la base de datos
  */
-async function migrate(db, { log = console.log } = {}) {
+async function migrate(db, opciones = {}) {
+  const nombre = `${NOMBRE_BLOQUEO}_${(await db.query('SELECT DATABASE() AS base'))[0][0].base}`;
+  const [[{ obtenido }]] = await db.query('SELECT GET_LOCK(?, ?) AS obtenido', [nombre, SEGUNDOS_ESPERA_BLOQUEO]);
+  if (Number(obtenido) !== 1) {
+    throw new Error(`Otra migración está en curso en esta base (no se obtuvo el bloqueo en ${SEGUNDOS_ESPERA_BLOQUEO} s). Intente de nuevo cuando termine.`);
+  }
+  try {
+    return await aplicarPendientes(db, opciones);
+  } finally {
+    await db.query('SELECT RELEASE_LOCK(?)', [nombre]).catch(() => {});
+  }
+}
+
+async function aplicarPendientes(db, { log = console.log } = {}) {
   await db.query(`CREATE TABLE IF NOT EXISTS schema_migrations (
     id VARCHAR(150) PRIMARY KEY,
     applied_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
