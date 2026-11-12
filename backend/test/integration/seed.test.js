@@ -79,9 +79,10 @@ test('el pago anual de agua tiene una obligación por usuario activo y año, y s
   const [anios] = await db.query('SELECT periodo_anio AS anio, COUNT(*) AS total FROM obligacion_anual_agua GROUP BY periodo_anio ORDER BY anio');
   assert.deepEqual(anios.map((a) => a.anio), [2025, 2026], 'no se emiten años futuros');
   const sinLote = await uno(
-    'SELECT COUNT(*) AS c FROM obligacion_anual_agua o WHERE NOT EXISTS (SELECT 1 FROM persona_lotes pl WHERE pl.persona_id = o.persona_id)'
+    "SELECT COUNT(*) AS c FROM obligacion_anual_agua o WHERE o.estado = 'PENDIENTE' AND NOT EXISTS (SELECT 1 FROM persona_lotes pl WHERE pl.persona_id = o.persona_id)"
   );
-  assert.equal(sinLote.c, 0, 'solo pagan agua los usuarios con lote');
+  // Quien vendió su único lote conserva lo que pagó como historial, pero ya no debe nada.
+  assert.equal(sinLote.c, 0, 'solo deben agua los usuarios con lote');
   const { c: conLote } = await uno(
     "SELECT COUNT(DISTINCT p.id) AS c FROM personas p JOIN persona_lotes pl ON pl.persona_id = p.id WHERE p.estado = 'ACTIVO'"
   );
@@ -103,6 +104,30 @@ test('el pago anual de agua tiene una obligación por usuario activo y año, y s
   const enElFuturo = await uno('SELECT COUNT(*) AS c FROM pago_anual_agua WHERE fecha_pago >= ?', ['2026-03-16 05:00:00']);
   assert.equal(enElFuturo.c, 0);
   assert.ok(resultado.anualAgua.pagos > 0);
+});
+
+test('los lotes sembrados tienen superficie de 0,2 a 3 hectáreas y la deuda del agua sigue al lote', async () => {
+  const fuera = await uno('SELECT COUNT(*) AS n FROM lotes WHERE superficie_m2 IS NULL OR superficie_m2 NOT BETWEEN 2000 AND 30000');
+  assert.equal(fuera.n, 0, 'ningún lote sin superficie ni fuera de 2.000 a 30.000 m²');
+
+  // Cada obligación pendiente pertenece al titular actual de su lote: si el lote se vendió, la deuda se fue con él.
+  const deudaAjena = await uno(
+    `SELECT COUNT(*) AS n FROM obligacion_anual_agua o
+     JOIN persona_lotes pl ON pl.lote_id = o.lote_id
+     WHERE o.estado = 'PENDIENTE' AND o.persona_id <> pl.persona_id`
+  );
+  assert.equal(deudaAjena.n, 0);
+
+  assert.ok(resultado.ventas > 0, 'la historia incluye compraventas de terrenos');
+  const vendidos = await uno("SELECT COUNT(*) AS n FROM persona_lotes WHERE observacion LIKE 'Compraventa del terreno%'");
+  assert.equal(vendidos.n, resultado.ventas);
+  // Lo que el vendedor ya había pagado queda a su nombre; las cuotas de un lote vendido pueden ser de dueños distintos.
+  const pagadasDelVendedor = await uno(
+    `SELECT COUNT(*) AS n FROM obligacion_anual_agua o
+     JOIN persona_lotes pl ON pl.lote_id = o.lote_id
+     WHERE pl.observacion LIKE 'Compraventa del terreno%' AND o.estado = 'PAGADA' AND o.persona_id <> pl.persona_id`
+  );
+  assert.ok(pagadasDelVendedor.n > 0, 'hay historial pagado por el dueño anterior');
 });
 
 test('los eventos pasados están finalizados con su asistencia completa y sus multas', async () => {
