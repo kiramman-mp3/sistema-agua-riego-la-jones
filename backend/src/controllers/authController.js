@@ -198,9 +198,11 @@ async function changePassword(req, res) {
   const hash = await hashPassword(nuevaPassword);
   await withTransaction(async (conexion) => {
     await conexion.query(
-      `UPDATE cuentas SET password_hash = ?, debe_cambiar_password = FALSE, password_updated_at = UTC_TIMESTAMP(3)
+      `UPDATE cuentas SET password_hash = ?, debe_cambiar_password = FALSE, password_updated_at = ?
        WHERE id = ?`,
-      [hash, req.user.cuentaId]
+      // Con la hora de este servidor, la misma que firma el token (`ts`): un desfase con el reloj de MySQL
+      // no invalida el token nuevo que se entrega a continuación.
+      [hash, new Date(), req.user.cuentaId]
     );
     await registrarAuditoria({
       conexion, cuentaId: req.user.cuentaId, accion: 'MODIFICAR', entidad: 'cuentas', entidadId: req.user.cuentaId, ip: req.ip,
@@ -218,7 +220,7 @@ async function changePassword(req, res) {
  * (también los de otros equipos donde se recordó la sesión).
  */
 async function logout(req, res) {
-  await db.query('UPDATE cuentas SET sesiones_validas_desde = UTC_TIMESTAMP(3) WHERE id = ?', [req.user.cuentaId]);
+  await db.query('UPDATE cuentas SET sesiones_validas_desde = ? WHERE id = ?', [new Date(), req.user.cuentaId]);
   await registrarAuditoria({ cuentaId: req.user.cuentaId, accion: 'LOGOUT', entidad: 'cuentas', entidadId: req.user.cuentaId, ip: req.ip });
   return res.json({ status: 'OK', message: 'Sesión cerrada.' });
 }

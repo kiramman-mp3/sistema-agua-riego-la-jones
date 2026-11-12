@@ -483,9 +483,9 @@ async function restablecerPassword(req, res) {
     if (!cuenta) throw notFound('El usuario no tiene cuenta de acceso.');
     const clave = generarPasswordTemporal();
     await conexion.query(
-      `UPDATE cuentas SET password_hash = ?, debe_cambiar_password = TRUE, password_updated_at = UTC_TIMESTAMP(3)
+      `UPDATE cuentas SET password_hash = ?, debe_cambiar_password = TRUE, password_updated_at = ?
        WHERE id = ?`,
-      [await hashPassword(clave), cuenta.id]
+      [await hashPassword(clave), new Date(), cuenta.id]
     );
     await conexion.query('DELETE FROM intentos_login WHERE cuenta_id = ?', [cuenta.id]);
     await registrarAuditoria({ conexion, cuentaId: req.user.cuentaId, accion: 'MODIFICAR', entidad: 'cuentas', entidadId: id, ip: req.ip, detalle: { restablecerPassword: true } });
