@@ -11,6 +11,7 @@ import { FechaLocalPipe } from '../../shared/pipes/fecha-local.pipe';
 import { CurvasNivelComponent } from '../../shared/ui/curvas-nivel.component';
 import { PaginadorComponent } from '../../shared/ui/paginador.component';
 import { iniciales } from '../../core/utils/personas';
+import { VerificacionDosPasosComponent } from '../../shared/verificacion-dos-pasos/verificacion-dos-pasos.component';
 
 interface UsuarioResultado {
   cedula: string;
@@ -25,7 +26,14 @@ interface UsuarioResultado {
 @Component({
   selector: 'app-mi-cuenta',
   standalone: true,
-  imports: [CommonModule, RouterLink, FechaLocalPipe, CurvasNivelComponent, PaginadorComponent],
+  imports: [
+    CommonModule,
+    RouterLink,
+    FechaLocalPipe,
+    CurvasNivelComponent,
+    PaginadorComponent,
+    VerificacionDosPasosComponent,
+  ],
   templateUrl: './mi-cuenta.component.html',
   styleUrls: ['./mi-cuenta.component.scss'],
 })
@@ -33,6 +41,8 @@ export class MiCuentaComponent implements OnInit {
   readonly iniciales = iniciales;
 
   cargando = true;
+  /** La directiva puede activar la verificación en dos pasos de su cuenta. */
+  esAdmin = false;
   resultado: UsuarioResultado | null = null;
   errorMensaje = '';
 
@@ -61,6 +71,7 @@ export class MiCuentaComponent implements OnInit {
       return;
     }
 
+    this.esAdmin = this.authService.esAdmin();
     this.consultarDatos(user.cedula);
     this.cargarPagos();
   }

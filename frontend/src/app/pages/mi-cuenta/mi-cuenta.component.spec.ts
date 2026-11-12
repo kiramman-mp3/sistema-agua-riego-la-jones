@@ -48,7 +48,11 @@ describe('Mi cuenta', () => {
         provideRouter([]),
         {
           provide: AuthService,
-          useValue: { getUser: () => ({ cedula: '1804567890', personaId: 7 }), logout: vi.fn() },
+          useValue: {
+            getUser: () => ({ cedula: '1804567890', personaId: 7 }),
+            esAdmin: () => false,
+            logout: vi.fn(),
+          },
         },
         {
           provide: ConsultaService,

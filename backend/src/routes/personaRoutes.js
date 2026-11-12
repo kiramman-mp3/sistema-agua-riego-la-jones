@@ -93,4 +93,14 @@ router.post('/:id/cuenta/restablecer-password', ...soloAdmin, personaController.
  */
 router.post('/:id/cuenta/desbloquear', ...soloAdmin, personaController.desbloquearCuenta);
 
+/**
+ * @openapi
+ * /personas/{id}/cuenta/totp/desactivar:
+ *   post:
+ *     tags: [Usuarios]
+ *     summary: Quita la verificación en dos pasos de otra cuenta (por ejemplo, si perdió su teléfono)
+ *     security: [{ bearerAuth: [] }]
+ */
+router.post('/:id/cuenta/totp/desactivar', ...soloAdmin, require('../controllers/totpController').desactivarDeOtro);
+
 module.exports = router;
