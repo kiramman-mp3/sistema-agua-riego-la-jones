@@ -25,3 +25,22 @@ test('rechaza una contraseña que contiene la cédula', () => {
 test('las contraseñas temporales generadas cumplen la política', () => {
   for (let i = 0; i < 200; i++) assert.equal(problemaConPassword(generarPasswordTemporal()), null);
 });
+
+test('las contraseñas se guardan con scrypt y se comprueban sin bloquear el hilo principal (AP-25)', async () => {
+  const { hashPassword, compararPassword, necesitaRehash } = require('../../src/shared/passwords');
+  const hash = await hashPassword('Canal-Matriz-0417');
+  assert.match(hash, /^scrypt\$16384\$8\$1\$[\w-]+\$[\w-]+$/);
+  assert.equal(await compararPassword('Canal-Matriz-0417', hash), true);
+  assert.equal(await compararPassword('Canal-Matriz-0418', hash), false);
+  assert.equal(necesitaRehash(hash), false);
+  assert.notEqual(await hashPassword('Canal-Matriz-0417'), hash, 'cada hash lleva su propia sal');
+});
+
+test('los hashes bcrypt anteriores se siguen aceptando y se marcan para rehacer', async () => {
+  const bcrypt = require('bcryptjs');
+  const { compararPassword, necesitaRehash } = require('../../src/shared/passwords');
+  const anterior = bcrypt.hashSync('Canal-Matriz-0417', 4);
+  assert.equal(await compararPassword('Canal-Matriz-0417', anterior), true);
+  assert.equal(necesitaRehash(anterior), true);
+  assert.equal(await compararPassword('x', null), false);
+});
