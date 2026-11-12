@@ -4,6 +4,7 @@ import { ModalComponent } from '../../../../../shared/ui/modal.component';
 import { SkeletonComponent } from '../../../../../shared/ui/skeleton.component';
 import { EmptyStateComponent } from '../../../../../shared/ui/empty-state.component';
 import { LoteItem, PersonaListado } from '../../../../../core/models/api-payloads';
+import { textoSuperficie } from '../../../../../core/utils/superficie';
 
 /** Lotes vinculados a un usuario, con acceso a la ficha de cada uno. */
 @Component({
@@ -58,7 +59,7 @@ import { LoteItem, PersonaListado } from '../../../../../core/models/api-payload
                     </td>
                     <td data-label="Sector">{{ lote.sector_nombre }}</td>
                     <td data-label="Superficie">
-                      {{ lote.superficie_m2 ? lote.superficie_m2 + ' m²' : 'N/D' }}
+                      {{ textoSuperficie(lote.superficie_m2, 'N/D') }}
                     </td>
                     <td data-label="Coordenadas">
                       @if (lote.latitud_aproximada) {
@@ -95,6 +96,7 @@ import { LoteItem, PersonaListado } from '../../../../../core/models/api-payload
   `,
 })
 export class LotesUsuarioComponent implements OnInit {
+  readonly textoSuperficie = textoSuperficie;
   private admin = inject(AdminService);
 
   readonly usuario = input.required<PersonaListado>();

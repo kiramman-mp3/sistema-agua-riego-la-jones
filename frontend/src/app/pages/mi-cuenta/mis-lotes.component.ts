@@ -4,6 +4,7 @@ import { forkJoin } from 'rxjs';
 import { LoteItem, TurnoItem } from '../../core/models/api-payloads';
 import { AuthService } from '../../core/services/auth.service';
 import { ConsultaService } from '../../core/services/consulta.service';
+import { textoSuperficie } from '../../core/utils/superficie';
 import { FechaLocalPipe } from '../../shared/pipes/fecha-local.pipe';
 import { CurvasNivelComponent } from '../../shared/ui/curvas-nivel.component';
 import { LotesMapComponent } from '../admin/components/lotes-map/lotes-map.component';
@@ -63,6 +64,7 @@ export function lotesConTurnos(lotes: LoteItem[], turnos: TurnoItem[]): LoteConT
   styleUrls: ['./mis-lotes.component.scss'],
 })
 export class MisLotesComponent implements OnInit {
+  readonly textoSuperficie = textoSuperficie;
   cargando = true;
   errorMensaje = '';
   lotes: LoteConTurnos[] = [];
