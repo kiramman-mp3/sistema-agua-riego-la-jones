@@ -22,6 +22,43 @@ before(async () => {
 });
 after(closeDatabase);
 
+test('la migración 033 desactiva la tarifa de agua por lote, salvo que ya haya cuotas por hectárea', async () => {
+  const { helpers } = require('../../src/db/migrator');
+  const migracion = require('../../database/migrations/033_cerrar_tarifa_agua_por_lote');
+  const ejecutar = async () => {
+    const conexion = await db.getConnection();
+    try {
+      await migracion.up(conexion, helpers);
+    } finally {
+      conexion.release();
+    }
+  };
+  const agua = await conceptoId('AGUA_ANUAL');
+  const [vieja] = await db.query("INSERT INTO tarifas (concepto_id, valor, vigencia_desde) VALUES (?, 25, '2025-01-01')", [agua]);
+  await ejecutar();
+  const [[cerrada]] = await db.query('SELECT activo, vigencia_hasta, observacion FROM tarifas WHERE id = ?', [vieja.insertId]);
+  assert.equal(Number(cerrada.activo), 0);
+  assert.ok(cerrada.vigencia_hasta, 'queda con fecha de fin');
+  assert.match(cerrada.observacion, /por hectárea/);
+
+  // Con una cuota ya emitida por hectárea, la tarifa vigente es por hectárea y no se toca.
+  const [nueva] = await db.query("INSERT INTO tarifas (concepto_id, valor, vigencia_desde) VALUES (?, 40, '2019-01-01')", [agua]);
+  const lote = await crearLote({ sectorId: sector, personaId: titular.personaId, codigo: 'MIG-T01', superficie: 10000 });
+  await db.query(
+    `INSERT INTO obligacion_anual_agua (persona_id, lote_id, periodo_anio, valor_total, valor_hectarea, superficie_m2, estado, fecha_emision, fecha_vencimiento)
+     VALUES (?, ?, 2019, 40, 40, 10000, 'PENDIENTE', '2019-01-01', '2019-12-31')`,
+    [titular.personaId, lote]
+  );
+  await ejecutar();
+  const [[intacta]] = await db.query('SELECT activo, vigencia_hasta FROM tarifas WHERE id = ?', [nueva.insertId]);
+  assert.deepEqual({ activo: Number(intacta.activo), vigencia_hasta: intacta.vigencia_hasta }, { activo: 1, vigencia_hasta: null });
+
+  // Limpieza: el resto del archivo crea sus propias tarifas, lotes y cuotas.
+  await db.query('DELETE FROM obligacion_anual_agua WHERE lote_id = ?', [lote]);
+  await db.query('DELETE FROM lotes WHERE id = ?', [lote]);
+  await db.query('DELETE FROM tarifas WHERE id IN (?)', [[vieja.insertId, nueva.insertId]]);
+});
+
 test('la cuota de cada lote es el valor por hectárea por sus hectáreas, redondeada al centavo', async () => {
   const uno = await crearLote({ sectorId: sector, personaId: titular.personaId, codigo: 'LJA-001', superficie: 15000 });
   const dos = await crearLote({ sectorId: sector, personaId: otro.personaId, codigo: 'LJA-002', superficie: 3333 });
