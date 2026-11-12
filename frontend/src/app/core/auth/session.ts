@@ -1,13 +1,21 @@
 /**
- * Almacenamiento de la sesión (token y usuario).
- * Lo comparten AuthService y el interceptor, que no puede inyectar AuthService
- * sin crear una dependencia circular (AuthService -> HttpClient -> interceptor).
+ * Estado de la sesión en el navegador (usuario y vencimiento).
+ *
+ * El token de sesión NO se guarda aquí: el servidor lo deja en una cookie HttpOnly que el JavaScript de la
+ * página no puede leer, así un XSS no puede robarlo. Este módulo solo recuerda quién inició sesión y hasta
+ * cuándo vale, para decidir qué pantallas mostrar; quien decide de verdad es el servidor (401 si no vale).
+ * Lo comparten AuthService y el interceptor, que no puede inyectar AuthService sin crear una dependencia
+ * circular (AuthService -> HttpClient -> interceptor).
  */
 export const ROLES = { ADMIN: 'ADMIN', USUARIO: 'USUARIO' } as const;
 export type Rol = (typeof ROLES)[keyof typeof ROLES];
 
-const TOKEN_KEY = 'junta_token';
+const EXPIRA_KEY = 'junta_expira';
 const USER_KEY = 'junta_user';
+/** Clave de versiones anteriores, que guardaban el token en el navegador: se borra al limpiar. */
+const TOKEN_ANTERIOR_KEY = 'junta_token';
+/** Cookie legible que el servidor deja junto a la de sesión; su valor va en la cabecera X-CSRF-Token. */
+export const COOKIE_CSRF = 'junta_csrf';
 
 type Almacen = 'local' | 'sesion';
 
@@ -46,8 +54,8 @@ function borrar(tipo: Almacen, clave: string): void {
 
 /** Dónde está la sesión actual: la de pestaña tiene prioridad sobre la recordada. */
 function almacenActual(): Almacen | null {
-  if (leer('sesion', TOKEN_KEY)) return 'sesion';
-  if (leer('local', TOKEN_KEY)) return 'local';
+  if (leer('sesion', EXPIRA_KEY)) return 'sesion';
+  if (leer('local', EXPIRA_KEY)) return 'local';
   return null;
 }
 
@@ -63,22 +71,36 @@ export function expiracionToken(token: string): number | null {
   }
 }
 
+/** Valor de una cookie legible del documento, o null. */
+export function leerCookie(nombre: string): string | null {
+  try {
+    for (const parte of document.cookie.split(';')) {
+      const i = parte.indexOf('=');
+      if (i > 0 && parte.slice(0, i).trim() === nombre)
+        return decodeURIComponent(parte.slice(i + 1));
+    }
+  } catch {
+    /* sin documento (SSR, pruebas) */
+  }
+  return null;
+}
+
 /**
- * Sesión del usuario. Con "Recordar mi sesión" el token se guarda en localStorage y
- * sobrevive al cierre del navegador; sin esa opción va a sessionStorage y se pierde al cerrarlo.
- * Un token vencido se descarta al leerlo, para no mostrar pantallas que el servidor rechazará.
+ * Sesión del usuario. Con "Recordar mi sesión" el usuario se guarda en localStorage y sobrevive al cierre del
+ * navegador (como la cookie de sesión, que en ese caso es persistente); sin esa opción va a sessionStorage.
+ * Una sesión vencida se descarta al consultarla, para no mostrar pantallas que el servidor rechazará.
  */
 export const session = {
-  token(): string | null {
+  /** Hay una sesión vigente según su fecha de vencimiento. */
+  activa(): boolean {
     const tipo = almacenActual();
-    if (!tipo) return null;
-    const token = leer(tipo, TOKEN_KEY);
-    const expira = token ? expiracionToken(token) : null;
-    if (token && expira !== null && expira <= Date.now()) {
+    if (!tipo) return false;
+    const expira = Number(leer(tipo, EXPIRA_KEY));
+    if (!Number.isFinite(expira) || expira <= Date.now()) {
       session.limpiar();
-      return null;
+      return false;
     }
-    return token;
+    return true;
   },
   usuario: <T = unknown>(): T | null => {
     const tipo = almacenActual();
@@ -93,14 +115,16 @@ export const session = {
   /** Indica si la sesión actual se guardó para recordarse. */
   recordada: (): boolean => almacenActual() === 'local',
   /**
-   * Guarda el token y el usuario. Si no se indica `recordar`, conserva el almacén de la
-   * sesión actual (por ejemplo, al renovar el token tras cambiar la contraseña).
+   * Guarda el usuario y el vencimiento del token recibido (el token mismo queda solo en la cookie HttpOnly).
+   * Si no se indica `recordar`, conserva el almacén de la sesión actual (por ejemplo, al renovar la sesión
+   * tras cambiar la contraseña).
    */
   guardar(token: string, usuario: unknown, recordar?: boolean): void {
     const destino: Almacen =
       recordar === undefined ? (almacenActual() ?? 'local') : recordar ? 'local' : 'sesion';
     session.limpiar();
-    escribir(destino, TOKEN_KEY, token);
+    const expira = expiracionToken(token) ?? Date.now() + 8 * 60 * 60 * 1000;
+    escribir(destino, EXPIRA_KEY, String(expira));
     escribir(destino, USER_KEY, JSON.stringify(usuario));
   },
   guardarUsuario(usuario: unknown): void {
@@ -108,8 +132,9 @@ export const session = {
   },
   limpiar(): void {
     for (const tipo of ['local', 'sesion'] as const) {
-      borrar(tipo, TOKEN_KEY);
+      borrar(tipo, EXPIRA_KEY);
       borrar(tipo, USER_KEY);
+      borrar(tipo, TOKEN_ANTERIOR_KEY);
     }
   },
 };
