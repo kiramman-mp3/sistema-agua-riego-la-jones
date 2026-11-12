@@ -45,8 +45,8 @@ jobs:
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
       - run: npm run lint
-      # Las pruebas de integración crean y borran su propia base (junta_las_jones_test).
-      - run: npm test
+      # Las pruebas de integración crean y borran su propia base (junta_las_jones_test). Muestran la cobertura al final.
+      - run: npm run test:cobertura
 
   whatsapp-service:
     name: Servicio de WhatsApp (lint + tests)
@@ -84,7 +84,7 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run format:check
-      - run: npm test -- --watch=false
+      - run: npm run test:cobertura
       - run: npm run build
 
   e2e:
