@@ -49,6 +49,15 @@ export interface EventoPublico {
   convocatoria_firmada_url: string | null;
   /** Ruta del acta firmada, si ya se subió. El archivo solo lo abre quien inició sesión. */
   acta_firmada_url: string | null;
+  /** Sector al que se convoca; null cuando es para todos los sectores. */
+  sector_id: number | null;
+  sector_nombre: string | null;
+}
+
+/** Filtros de la consulta pública de eventos pasados. */
+export interface FiltroEventosPasados {
+  sectorId?: number | null;
+  subtipo?: SubtipoAsamblea | null;
 }
 
 export interface PaginaEventosPasados {
@@ -80,7 +89,8 @@ export interface EventoDetalleResponse {
 
 import { DocumentosService, DocumentoSubido, TipoDocumento } from './documentos.service';
 import { environment } from '../../../environments/environment';
-import { EventoItem, LoteItem, RespuestaApi, TurnoItem } from '../models/api-payloads';
+import { EventoItem, LoteItem, RespuestaApi, SectorItem, TurnoItem } from '../models/api-payloads';
+import { SubtipoAsamblea } from '../utils/eventos';
 
 @Injectable({
   providedIn: 'root',
@@ -103,11 +113,20 @@ export class ConsultaService {
   getEventosPasados(
     tipo: EventoPublico['tipo'],
     pagina: number,
+    filtro: FiltroEventosPasados = {},
     limite = 10,
   ): Observable<PaginaEventosPasados> {
+    const params: Record<string, string | number> = { tipo, pagina, limite };
+    if (filtro.sectorId) params['sector_id'] = filtro.sectorId;
+    if (filtro.subtipo) params['subtipo'] = filtro.subtipo;
     return this.http.get<PaginaEventosPasados>(`${this.apiUrl}/eventos/publicos/pasados`, {
-      params: { tipo, pagina, limite },
+      params,
     });
+  }
+
+  /** Sectores de la Junta, para filtrar las convocatorias. Es una consulta pública. */
+  getSectores(): Observable<RespuestaApi<SectorItem[]>> {
+    return this.http.get<RespuestaApi<SectorItem[]>>(`${this.apiUrl}/lotes/sectores`);
   }
 
   /** Lotes de la persona. El servidor solo entrega los propios a un usuario; la directiva pasa su persona. */

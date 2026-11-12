@@ -20,11 +20,11 @@ function enDias(dias) {
   return d.toISOString().slice(0, 10);
 }
 
-async function eventoPasado({ tipo = 'ASAMBLEA', fecha = '2026-01-10', estado = 'CONVOCADO', valor = 15, multa = true } = {}) {
+async function eventoPasado({ tipo = 'ASAMBLEA', fecha = '2026-01-10', estado = 'CONVOCADO', valor = 15, multa = true, titulo, sectorId = null } = {}) {
   const [r] = await db.query(
-    `INSERT INTO eventos (tipo, titulo, fecha, hora_inicio, estado, genera_multa_ausencia, valor_multa, created_by_cuenta_id)
-     VALUES (?, ?, ?, '08:00', ?, ?, ?, ?)`,
-    [tipo, `${tipo} de prueba ${fecha}`, fecha, estado, multa, multa ? valor : null, admin.cuentaId]
+    `INSERT INTO eventos (tipo, titulo, fecha, hora_inicio, estado, genera_multa_ausencia, valor_multa, sector_id, created_by_cuenta_id)
+     VALUES (?, ?, ?, '08:00', ?, ?, ?, ?, ?)`,
+    [tipo, titulo || `${tipo} de prueba ${fecha}`, fecha, estado, multa, multa ? valor : null, sectorId, admin.cuentaId]
   );
   return r.insertId;
 }
@@ -513,4 +513,44 @@ test('el portal público lista las asambleas y mingas ya realizadas, con sus doc
   assert.equal((await request(app).get('/api/eventos/publicos/pasados?tipo=MINGA&limite=500')).status, 400);
   // El acta se pide con sesión: la ruta se anuncia, pero el archivo no se sirve sin ella.
   assert.equal((await request(app).get('/uploads/documentos/acta_pasada.pdf')).status, 401);
+});
+
+test('el portal público filtra los eventos pasados por sector y por subtipo de asamblea', async () => {
+  const sector = await crearSector('Sector del filtro');
+  const otro = await crearSector('Otro sector del filtro');
+  const ordinariaSector = await eventoPasado({ fecha: '2023-02-01', estado: 'REALIZADO', titulo: 'Asamblea General Ordinaria 2023', sectorId: sector });
+  const extraSector = await eventoPasado({ fecha: '2023-03-01', estado: 'REALIZADO', titulo: 'Asamblea General EXTRAORDINARIA 2023', sectorId: sector });
+  const extraOtro = await eventoPasado({ fecha: '2023-04-01', estado: 'REALIZADO', titulo: 'Asamblea Extraordinaria otro sector', sectorId: otro });
+  const ordinariaTodos = await eventoPasado({ fecha: '2023-05-01', estado: 'REALIZADO', titulo: 'Asamblea General Ordinaria de todos' });
+  const mingaSector = await eventoPasado({ tipo: 'MINGA', fecha: '2023-06-01', estado: 'REALIZADO', sectorId: sector });
+  const mingaOtro = await eventoPasado({ tipo: 'MINGA', fecha: '2023-07-01', estado: 'REALIZADO', sectorId: otro });
+  const pedir = async (consulta) => (await request(app).get(`/api/eventos/publicos/pasados?limite=50&${consulta}`)).body;
+  const ids = (cuerpo) => cuerpo.data.map((e) => e.id);
+
+  // Por sector: entran los del sector y los convocados a todos; no los de otro sector.
+  const delSector = await pedir(`tipo=ASAMBLEA&sector_id=${sector}`);
+  assert.ok([ordinariaSector, extraSector, ordinariaTodos].every((id) => ids(delSector).includes(id)));
+  assert.ok(!ids(delSector).includes(extraOtro));
+  assert.equal(delSector.data.find((e) => e.id === extraSector).sector_nombre, 'Sector del filtro');
+
+  // Por subtipo, con el total ajustado al filtro.
+  const extraordinarias = await pedir('tipo=ASAMBLEA&subtipo=EXTRAORDINARIA');
+  assert.ok([extraSector, extraOtro].every((id) => ids(extraordinarias).includes(id)));
+  assert.ok(![ordinariaSector, ordinariaTodos].some((id) => ids(extraordinarias).includes(id)));
+  assert.equal(extraordinarias.total, extraordinarias.data.length);
+  const ordinarias = await pedir('tipo=ASAMBLEA&subtipo=ORDINARIA');
+  assert.ok([ordinariaSector, ordinariaTodos].every((id) => ids(ordinarias).includes(id)));
+  assert.ok(![extraSector, extraOtro].some((id) => ids(ordinarias).includes(id)));
+
+  // Subtipo y sector juntos.
+  const juntos = await pedir(`tipo=ASAMBLEA&subtipo=EXTRAORDINARIA&sector_id=${sector}`);
+  assert.deepEqual(ids(juntos), [extraSector]);
+
+  // Las mingas se filtran por sector y no tienen subtipo.
+  const mingas = await pedir(`tipo=MINGA&sector_id=${sector}&subtipo=EXTRAORDINARIA`);
+  assert.ok(ids(mingas).includes(mingaSector));
+  assert.ok(!ids(mingas).includes(mingaOtro));
+
+  assert.equal((await request(app).get('/api/eventos/publicos/pasados?tipo=ASAMBLEA&subtipo=OTRO')).status, 400);
+  assert.equal((await request(app).get('/api/eventos/publicos/pasados?tipo=ASAMBLEA&sector_id=abc')).status, 400);
 });
