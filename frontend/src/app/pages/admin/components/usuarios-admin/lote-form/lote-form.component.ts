@@ -7,6 +7,7 @@ import {
   input,
   output,
 } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminService } from '../../../../../core/services/admin.service';
 import { NotificationService } from '../../../../../core/services/notification.service';
@@ -14,6 +15,7 @@ import { ModalComponent } from '../../../../../shared/ui/modal.component';
 import { LotesMapComponent } from '../../lotes-map/lotes-map.component';
 import { LoteItem, SectorItem } from '../../../../../core/models/api-payloads';
 import { AYUDAS_FORMULARIO } from '../../../../../core/directives/formularios';
+import { hectareas } from '../../../../../core/utils/superficie';
 
 const PATRON_CODIGO = /^[A-Z]{3}-\d{3,8}$/;
 
@@ -21,7 +23,7 @@ const PATRON_CODIGO = /^[A-Z]{3}-\d{3,8}$/;
 @Component({
   selector: 'app-lote-form',
   standalone: true,
-  imports: [FormsModule, ...AYUDAS_FORMULARIO, ModalComponent, LotesMapComponent],
+  imports: [DecimalPipe, FormsModule, ...AYUDAS_FORMULARIO, ModalComponent, LotesMapComponent],
   templateUrl: './lote-form.component.html',
 })
 export class LoteFormComponent implements OnInit, OnDestroy {
@@ -58,6 +60,11 @@ export class LoteFormComponent implements OnInit, OnDestroy {
     referencia_ubicacion: '',
     observacion: '',
   };
+
+  /** Hectáreas equivalentes a la superficie escrita, para mostrarlas junto al campo. */
+  get hectareas(): number | null {
+    return hectareas(this.form.superficie_m2);
+  }
 
   ngOnInit(): void {
     const l = this.lote();
@@ -136,6 +143,10 @@ export class LoteFormComponent implements OnInit, OnDestroy {
     this.error = '';
     if (!this.form.sector_id || !this.form.codigo) {
       this.error = 'El sector y el código son obligatorios.';
+      return;
+    }
+    if (this.hectareas === null) {
+      this.error = 'La superficie en m² es obligatoria y debe ser mayor que cero.';
       return;
     }
     this.form.codigo = this.form.codigo.trim().toUpperCase();

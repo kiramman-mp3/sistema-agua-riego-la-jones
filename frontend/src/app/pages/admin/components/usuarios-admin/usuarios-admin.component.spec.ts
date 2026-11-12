@@ -64,6 +64,7 @@ describe('Código de nuevo lote (LoteFormComponent)', () => {
     const creado = vi.fn();
     component.creado.subscribe(creado);
     component.form.sector_id = 1;
+    component.form.superficie_m2 = 15000;
     component.form.codigo = ' lja-001 ';
     component.guardar();
     expect(component.form.codigo).toBe('LJA-001');
@@ -76,10 +77,27 @@ describe('Código de nuevo lote (LoteFormComponent)', () => {
     configurar({ createLote: vi.fn() });
     const component = TestBed.createComponent(LoteFormComponent).componentInstance;
     component.form.sector_id = 1;
+    component.form.superficie_m2 = 15000;
     component.form.codigo = 'LJ-1';
     component.guardar();
     expect(admin.createLote).not.toHaveBeenCalled();
     expect(component.error).toContain('LJA-001');
+  });
+
+  it('exige la superficie y muestra su equivalente en hectáreas', () => {
+    configurar({ createLote: vi.fn() });
+    const component = TestBed.createComponent(LoteFormComponent).componentInstance;
+    component.form.sector_id = 1;
+    component.form.codigo = 'LJA-001';
+    for (const vacia of [null, 0, -5]) {
+      component.form.superficie_m2 = vacia;
+      component.guardar();
+      expect(component.error).toContain('superficie');
+      expect(component.hectareas).toBeNull();
+    }
+    expect(admin.createLote).not.toHaveBeenCalled();
+    component.form.superficie_m2 = 15000;
+    expect(component.hectareas).toBe(1.5);
   });
 });
 
