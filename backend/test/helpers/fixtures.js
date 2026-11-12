@@ -58,8 +58,9 @@ async function crearSector(nombre = `Sector ${++secuencia}`) {
   return r.insertId;
 }
 
-async function crearLote({ sectorId, personaId = null, codigo = `LJA-${String(++secuencia).padStart(3, '0')}` }) {
-  const [r] = await db.query('INSERT INTO lotes (sector_id, codigo, superficie_m2) VALUES (?, ?, 1000)', [sectorId, codigo]);
+/** Por defecto un lote de 1 ha (10.000 m²), para que el pago por hectárea valga lo mismo que la tarifa. */
+async function crearLote({ sectorId, personaId = null, codigo = `LJA-${String(++secuencia).padStart(3, '0')}`, superficie = 10000 }) {
+  const [r] = await db.query('INSERT INTO lotes (sector_id, codigo, superficie_m2) VALUES (?, ?, ?)', [sectorId, codigo, superficie]);
   if (personaId) {
     await db.query("INSERT INTO persona_lotes (persona_id, lote_id, tipo_relacion) VALUES (?, ?, 'PROPIETARIO')", [personaId, r.insertId]);
   }

@@ -13,6 +13,10 @@ const { z } = s;
 const numeroOpcional = (esquema) => z.preprocess((v) => (v === '' || v === null ? undefined : v), esquema.optional()).transform((v) => v ?? null);
 const relacion = z.enum(['PROPIETARIO', 'REPRESENTANTE']).default('PROPIETARIO');
 
+/** La superficie (en m²) es obligatoria: el pago anual de agua se calcula por hectárea. */
+const MENSAJE_SUPERFICIE = 'La superficie del lote es obligatoria y debe ser mayor a cero (en m²).';
+const superficieObligatoria = z.coerce.number({ error: MENSAJE_SUPERFICIE }).positive(MENSAJE_SUPERFICIE).max(10_000_000, 'La superficie no puede superar 10.000.000 m².');
+
 /** Titularidad única: un lote pertenece al 100 % a un solo usuario. Se rechaza cualquier otro valor en lugar de ignorarlo. */
 const PORCENTAJE_TITULARIDAD = 100;
 const porcentajeTitularidad = z.coerce
@@ -40,7 +44,7 @@ const loteSchema = z.object({
   sector_id: s.id,
   codigo: z.string({ error: 'El código del lote es obligatorio.' }).transform(normalizarCodigo)
     .refine((c) => FORMATO_CODIGO_LOTE.test(c), 'El código debe tener tres letras y de tres a ocho dígitos separados por un guion. Ejemplo: LJA-001.'),
-  superficie_m2: numeroOpcional(z.coerce.number().positive('La superficie debe ser mayor a cero.').max(10_000_000)),
+  superficie_m2: superficieObligatoria,
   ancho_m: numeroOpcional(z.coerce.number().positive().max(100_000)),
   largo_m: numeroOpcional(z.coerce.number().positive().max(100_000)),
   latitud_aproximada: numeroOpcional(z.coerce.number().min(-90).max(90)),
@@ -57,7 +61,8 @@ const loteUpdateSchema = z.object({
   sector_id: s.id.optional(),
   codigo: z.string().transform(normalizarCodigo)
     .refine((c) => FORMATO_CODIGO_LOTE.test(c), 'El código debe tener tres letras y de tres a ocho dígitos separados por un guion. Ejemplo: LJA-001.').optional(),
-  superficie_m2: numeroOpcional(z.coerce.number().positive('La superficie debe ser mayor a cero.').max(10_000_000)),
+  // Al editar puede omitirse (se conserva la actual), pero nunca vaciarse.
+  superficie_m2: superficieObligatoria.optional(),
   ancho_m: numeroOpcional(z.coerce.number().positive().max(100_000)),
   largo_m: numeroOpcional(z.coerce.number().positive().max(100_000)),
   latitud_aproximada: numeroOpcional(z.coerce.number().min(-90).max(90)),
