@@ -277,13 +277,14 @@ npm run prod
 |---|---|---|
 | Raíz | `npm run dev` | Inicia backend y frontend concurrentemente en modo desarrollo |
 | Raíz | `npm run prod` | Verifica variables, compila frontend, aplica migraciones y arranca en producción |
+| Raíz | `npm run actualizar -- <etiqueta>` | Actualiza el servidor a una versión publicada: respaldo previo, migraciones, comprobación de salud e instrucciones para volver atrás |
 | Raíz | `npm test` | Ejecuta las pruebas de backend, whatsapp-service y frontend |
 | Raíz | `npm run lint` | Ejecuta el análisis de código con ESLint en todos los módulos |
 | Backend | `npm run db:migrate` | Aplica todas las migraciones SQL/JS pendientes a la base de datos |
 | Backend | `npm run db:setup` | Prepara la base de datos e inicializa el primer administrador en producción |
 | Backend | `npm run db:reset-admin -- <cédula>` | Recupera a un administrador que perdió su contraseña (genera una temporal; solo con acceso al servidor) |
 | Backend | `npm run db:seed` | Siembra usuarios, turnos, lotes y cobros simulados para demostración |
-| Frontend | `npm test -- --watch=false` | Ejecuta las 227 pruebas unitarias con Vitest |
+| Frontend | `npm test -- --watch=false` | Ejecuta las 275 pruebas unitarias con Vitest |
 | Frontend | `npm run build` | Compila el bundle optimizado para despliegue en producción |
 
 ---
@@ -308,6 +309,8 @@ Para desplegar en un servidor en la nube o local:
    pm2 start scripts/prod.js --name "junta-aguas-app"
    ```
 4. Configure el bloque de servidor en Nginx apuntando con `proxy_pass` hacia `http://127.0.0.1:3000`.
+
+Para publicar una versión nueva en un servidor que ya funciona use `npm run actualizar -- <etiqueta>`: hace un respaldo antes de tocar nada, migra, comprueba `/api/health` e indica cómo volver a la versión anterior (`docs/operacion.md`, sección "Actualizar y volver atrás").
 
 La lista completa para un VPS (DNS, usuario de MySQL, SSH, HTTPS, primer ingreso y comprobaciones) está en `docs/operacion.md`, sección 0. La creación y autorización de llaves SSH está en `docs/acceso-servidor.md`.
 
