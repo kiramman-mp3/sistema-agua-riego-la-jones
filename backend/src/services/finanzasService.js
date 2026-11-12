@@ -430,9 +430,18 @@ async function anularPagoAnualAgua(conexion, { pagoId, motivo, cuentaId }) {
 
   const [detalles] = await conexion.query('SELECT obligacion_anual_agua AS id FROM pago_anual_agua_detalle WHERE pago_anual_agua_id = ?', [pagoId]);
   if (detalles.length) {
+    const ids = detalles.map((d) => d.id);
     await conexion.query(
       "UPDATE obligacion_anual_agua SET estado = 'PENDIENTE' WHERE id IN (?) AND estado = 'PAGADA'",
-      [detalles.map((d) => d.id)]
+      [ids]
+    );
+    // La deuda sigue al lote: si el lote cambió de titular después del pago, la cuota que vuelve a quedar
+    // pendiente pasa al titular actual (igual que al transferir el lote).
+    await conexion.query(
+      `UPDATE obligacion_anual_agua o JOIN persona_lotes pl ON pl.lote_id = o.lote_id
+       SET o.persona_id = pl.persona_id
+       WHERE o.id IN (?) AND o.estado = 'PENDIENTE' AND o.persona_id <> pl.persona_id`,
+      [ids]
     );
   }
   await conexion.query(
