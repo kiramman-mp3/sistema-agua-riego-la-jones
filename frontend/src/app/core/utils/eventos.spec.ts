@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { agruparPorFecha } from './eventos';
+import { agruparPorFecha, subtipoAsamblea } from './eventos';
 
 describe('agruparPorFecha', () => {
   const ev = (id: number, fecha: string, hora_inicio = '08:00') => ({ id, fecha, hora_inicio });
@@ -26,5 +26,25 @@ describe('agruparPorFecha', () => {
       'proximas',
     ]);
     expect(agruparPorFecha([], '2026-10-07')).toEqual([]);
+  });
+});
+
+describe('subtipoAsamblea', () => {
+  it('usa el subtipo guardado aunque el título no lo diga', () => {
+    expect(
+      subtipoAsamblea({
+        tipo: 'ASAMBLEA',
+        titulo: 'Sesión urgente',
+        subtipo_asamblea: 'EXTRAORDINARIA',
+      }),
+    ).toBe('EXTRAORDINARIA');
+  });
+
+  it('sin subtipo guardado lo deduce del título, y las mingas no tienen subtipo', () => {
+    expect(subtipoAsamblea({ tipo: 'ASAMBLEA', titulo: 'Asamblea Extraordinaria' })).toBe(
+      'EXTRAORDINARIA',
+    );
+    expect(subtipoAsamblea({ tipo: 'ASAMBLEA', titulo: 'Asamblea general' })).toBe('ORDINARIA');
+    expect(subtipoAsamblea({ tipo: 'MINGA', titulo: 'Minga extraordinaria' })).toBeNull();
   });
 });
