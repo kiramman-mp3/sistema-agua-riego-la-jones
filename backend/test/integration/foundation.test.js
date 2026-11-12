@@ -193,3 +193,17 @@ test('incluye cabeceras de seguridad', async () => {
   assert.equal(res.headers['x-content-type-options'], 'nosniff');
   assert.equal(res.headers['x-powered-by'], undefined);
 });
+
+test('dos procesos que migran a la vez no aplican dos veces la misma migración', async () => {
+  await db.query("DELETE FROM schema_migrations WHERE id = '029_intentos_login.js'");
+  const [a, b] = [await db.getConnection(), await db.getConnection()];
+  try {
+    const resultados = await Promise.all([migrate(a, { log: () => {} }), migrate(b, { log: () => {} })]);
+    assert.deepEqual(resultados.flat(), ['029_intentos_login.js'], 'solo uno de los dos la aplica');
+  } finally {
+    a.release();
+    b.release();
+  }
+  const [filas] = await db.query("SELECT id FROM schema_migrations WHERE id = '029_intentos_login.js'");
+  assert.equal(filas.length, 1);
+});
