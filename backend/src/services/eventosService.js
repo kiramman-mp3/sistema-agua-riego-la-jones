@@ -374,12 +374,21 @@ async function listarEventosPublicos(conexion, limite) {
  * Cuenta como realizado el evento cerrado y el anunciado cuya fecha ya pasó; los borradores y los
  * cancelados no se publican. Uno con fecha futura sigue siendo próximo, aunque ya tenga el acta firmada.
  * El acta firmada se devuelve como ruta; el servidor solo la sirve a quien haya iniciado sesión.
+ * Se puede filtrar por sector (también entran las convocadas a todos los sectores) y, en asambleas,
+ * por subtipo. El subtipo no se guarda aparte: una asamblea es extraordinaria si su título lo dice,
+ * igual que en el panel de la directiva.
  */
-async function listarEventosPasados(conexion, { tipo, pagina, limite }) {
+async function listarEventosPasados(conexion, { tipo, pagina, limite, sector_id: sectorId, subtipo }) {
+  const filtros = [];
+  const extra = [];
+  if (sectorId) { filtros.push('(e.sector_id = ? OR e.sector_id IS NULL)'); extra.push(sectorId); }
+  if (subtipo && tipo === 'ASAMBLEA') {
+    filtros.push(subtipo === 'EXTRAORDINARIA' ? "e.titulo LIKE '%extraordinaria%'" : "e.titulo NOT LIKE '%extraordinaria%'");
+  }
   const condicion = `e.tipo = ? AND e.estado IN ('PROGRAMADO', 'CONVOCADO', 'REALIZADO')
-     AND (e.estado = 'REALIZADO' OR e.fecha < ?)`;
+     AND (e.estado = 'REALIZADO' OR e.fecha < ?)${filtros.map((f) => ` AND ${f}`).join('')}`;
   const [[{ total }]] = await conexion.query(
-    `SELECT COUNT(*) AS total FROM eventos e WHERE ${condicion}`, [tipo, hoy()]
+    `SELECT COUNT(*) AS total FROM eventos e WHERE ${condicion}`, [tipo, hoy(), ...extra]
   );
   const [filas] = await conexion.query(
     `SELECT e.id, e.tipo, e.titulo, e.descripcion, e.fecha, e.hora_inicio, e.hora_fin, e.lugar, e.estado,
@@ -392,7 +401,7 @@ async function listarEventosPasados(conexion, { tipo, pagina, limite }) {
      WHERE ${condicion}
      ORDER BY e.fecha DESC, e.hora_inicio DESC, e.id DESC
      LIMIT ? OFFSET ?`,
-    [tipo, hoy(), limite, (pagina - 1) * limite]
+    [tipo, hoy(), ...extra, limite, (pagina - 1) * limite]
   );
   return { data: filas, total };
 }
