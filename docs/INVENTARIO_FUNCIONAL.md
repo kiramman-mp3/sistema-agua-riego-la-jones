@@ -1,6 +1,6 @@
 # Inventario funcional
 
-Inventario de las funcionalidades del Sistema Integrado de Gestión de la Junta de Agua y Riego La Jones, versión `v1.3.0` (2026-11-13). Se construyó revisando las rutas y pantallas del frontend, los endpoints y reglas del backend y la base de datos, y se comprobó en el navegador con las cuentas de prueba. La guía para las personas usuarias está en [`GUIA_DE_USUARIO.md`](GUIA_DE_USUARIO.md); las inconsistencias, en [`OBSERVACIONES.md`](OBSERVACIONES.md).
+Inventario de las funcionalidades del Sistema Integrado de Gestión de la Junta de Agua y Riego La Jones, versión `v1.3.2` (2026-11-13). Se construyó revisando las rutas y pantallas del frontend, los endpoints y reglas del backend y la base de datos, y se comprobó en el navegador con las cuentas de prueba. La guía para las personas usuarias está en [`GUIA_DE_USUARIO.md`](GUIA_DE_USUARIO.md); las inconsistencias, en [`OBSERVACIONES.md`](OBSERVACIONES.md).
 
 ## Roles
 
