@@ -308,6 +308,34 @@ async function valorAnualPorPersona(conexion, personaIds, fecha) {
   return resultado;
 }
 
+/**
+ * Obligaciones anuales de agua PENDIENTES de un lote, de cualquier año, con su suma. La deuda sigue al lote,
+ * no a quien lo tenía: al cambiar de titular, estas pasan al nuevo.
+ * @returns {Promise<{ obligaciones: Array<{ id: number, anio: number, valor: number, persona_id: number }>, total: number }>}
+ */
+async function deudaAnualPendienteDeLote(conexion, loteId, { bloquear = false } = {}) {
+  const [filas] = await conexion.query(
+    `SELECT id, periodo_anio, valor_total, persona_id FROM obligacion_anual_agua
+     WHERE lote_id = ? AND estado = 'PENDIENTE' ORDER BY periodo_anio${bloquear ? ' FOR UPDATE' : ''}`,
+    [loteId]
+  );
+  const obligaciones = filas.map((f) => ({ id: f.id, anio: f.periodo_anio, valor: Number(f.valor_total), persona_id: f.persona_id }));
+  return { obligaciones, total: redondear(obligaciones.reduce((suma, o) => suma + o.valor, 0)) };
+}
+
+/**
+ * Traspasa al nuevo titular las obligaciones anuales pendientes del lote. Las pagadas y anuladas quedan
+ * como historial del titular que las pagó. Debe correr en la misma transacción que el cambio de titularidad.
+ */
+async function transferirDeudaAnualDeLote(conexion, { loteId, personaId }) {
+  const deuda = await deudaAnualPendienteDeLote(conexion, loteId, { bloquear: true });
+  const aMover = deuda.obligaciones.filter((o) => Number(o.persona_id) !== Number(personaId));
+  if (aMover.length) {
+    await conexion.query('UPDATE obligacion_anual_agua SET persona_id = ? WHERE id IN (?)', [personaId, aMover.map((o) => o.id)]);
+  }
+  return { obligaciones: aMover, total: redondear(aMover.reduce((suma, o) => suma + o.valor, 0)) };
+}
+
 /** Estado del pago anual de agua de un año: obligaciones emitidas, cobradas y pendientes. */
 async function resumenAnualAgua(conexion, anio) {
   const [[fila]] = await conexion.query(
@@ -419,6 +447,6 @@ async function anularObligacionAnualAgua(conexion, { obligacionId, motivo, cuent
 module.exports = {
   crearObligacionManual, anularObligacion, registrarEgreso, anularEgreso, DIAS_PARA_VENCER, vencimientoPorDefecto,
   redondear, conceptoPorCodigo, tarifaVigente, registrarTarifa, registrarPago, anularPago,
-  generarObligacionesAnualesAgua, recalcularCuotasPendientesDeLote, valorAnualPorPersona, cuotaAnualDeLote, hectareasDeLote, resumenAnualAgua, obligacionesAnualesPendientes, registrarPagoAnualAgua,
+  generarObligacionesAnualesAgua, recalcularCuotasPendientesDeLote, deudaAnualPendienteDeLote, transferirDeudaAnualDeLote, valorAnualPorPersona, cuotaAnualDeLote, hectareasDeLote, resumenAnualAgua, obligacionesAnualesPendientes, registrarPagoAnualAgua,
   anularPagoAnualAgua, anularObligacionAnualAgua
 };
