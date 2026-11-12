@@ -2,6 +2,8 @@
 const { z, fecha, hora, textoOpcional } = require('../shared/schemas');
 
 const TIPOS = ['ASAMBLEA', 'MINGA'];
+const SUBTIPOS = ['ORDINARIA', 'EXTRAORDINARIA'];
+const subtipo = z.enum(SUBTIPOS, { error: 'El subtipo debe ser ORDINARIA o EXTRAORDINARIA.' });
 const ESTADOS = ['BORRADOR', 'PROGRAMADO', 'CONVOCADO', 'REALIZADO', 'CANCELADO'];
 
 const listarSchema = z.object({
@@ -16,11 +18,13 @@ const pasadosSchema = z.object({
   pagina: z.coerce.number().int().min(1).default(1),
   limite: z.coerce.number().int().min(1).max(50).default(10),
   sector_id: z.coerce.number().int().positive().optional(),
-  subtipo: z.enum(['ORDINARIA', 'EXTRAORDINARIA'], { error: 'El subtipo debe ser ORDINARIA o EXTRAORDINARIA.' }).optional()
+  subtipo: subtipo.optional()
 });
 
 const crearSchema = z.object({
   tipo: z.enum(TIPOS, { error: 'El tipo debe ser ASAMBLEA o MINGA.' }),
+  // Solo para asambleas; sin valor se deduce del título (como hacían los clientes anteriores).
+  subtipo_asamblea: subtipo.optional(),
   titulo: z.string().trim().min(3, 'El título debe tener al menos 3 caracteres.').max(200),
   descripcion: textoOpcional(2000),
   fecha,
@@ -51,6 +55,7 @@ const puntoSchema = z.object({
 const puntosSchema = z.object({ puntos: z.array(puntoSchema).max(100) });
 
 const actualizarSchema = z.object({
+  subtipo_asamblea: subtipo.optional(),
   titulo: z.string().trim().min(3, 'El título debe tener al menos 3 caracteres.').max(200).optional(),
   descripcion: textoOpcional(2000),
   fecha: fecha.optional(),
