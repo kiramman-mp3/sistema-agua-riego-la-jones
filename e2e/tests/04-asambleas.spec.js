@@ -217,9 +217,7 @@ test('una asamblea realizada ya no tiene acciones de estado, pero admite corregi
 });
 
 test('el tipo elegido en el formulario se conserva al guardar la asamblea', async ({ page }) => {
-  // FALLO CONOCIDO: el servidor no tiene una columna para el subtipo, así que "Extraordinaria" se pierde
-  // salvo que el título lo diga. Cuando se corrija, esta prueba pasará y Playwright avisará de quitar la marca.
-  test.fail(true, 'El subtipo de la asamblea no se persiste: la lista lo deduce del título.');
+  // El título no dice "extraordinaria": el subtipo elegido en el formulario se guarda en el servidor.
   const titulo = unico('Sesion urgente E2E');
   const guardar = await crearAsamblea(page, { titulo, subtipo: 'Extraordinaria', fecha: fechaEcuador(12) });
   await guardar.click();

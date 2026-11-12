@@ -134,9 +134,9 @@ export const PORCENTAJE_TITULARIDAD = 100;
             <div class="alert alert--warning" role="alert" animate.enter="reveal-enter">
               <i class="ri-swap-line" aria-hidden="true"></i>
               <span
-                >Este lote pertenece a <strong>{{ titular }}</strong
-                >. Al asignarlo se le transfiere el 100 % a {{ c.nombres }} {{ c.apellidos }}, junto
-                con sus turnos de riego activos.</span
+                >Este lote pertenece a <strong>{{ titular }}</strong>. Al asignarlo se le transfiere
+                el 100 % a {{ c.nombres }} {{ c.apellidos }}, junto con sus turnos de riego
+                activos.</span
               >
             </div>
             @if (deuda(); as d) {
@@ -147,9 +147,9 @@ export const PORCENTAJE_TITULARIDAD = 100;
                     >La deuda sigue al lote: sus
                     <strong>{{ d.obligaciones.length }}</strong> cuota(s) anual(es) de agua
                     pendiente(s) (años {{ aniosDeuda(d) }}, total
-                    <strong>{{ d.total | moneda }}</strong
-                    >) pasarán a {{ c.nombres }} {{ c.apellidos }}. Las cuotas ya pagadas se quedan
-                    como historial de quien las pagó.</span
+                    <strong>{{ d.total | moneda }}</strong>) pasarán a {{ c.nombres }}
+                    {{ c.apellidos }}. Las cuotas ya pagadas se quedan como historial de quien las
+                    pagó.</span
                   >
                 </div>
               }

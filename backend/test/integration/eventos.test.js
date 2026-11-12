@@ -554,3 +554,40 @@ test('el portal público filtra los eventos pasados por sector y por subtipo de 
   assert.equal((await request(app).get('/api/eventos/publicos/pasados?tipo=ASAMBLEA&subtipo=OTRO')).status, 400);
   assert.equal((await request(app).get('/api/eventos/publicos/pasados?tipo=ASAMBLEA&sector_id=abc')).status, 400);
 });
+
+test('el subtipo elegido al crear la asamblea se guarda aunque el título no lo diga (AP-27)', async () => {
+  const crear = await request(app).post('/api/eventos').set(auth(admin)).send({
+    tipo: 'ASAMBLEA', subtipo_asamblea: 'EXTRAORDINARIA', titulo: 'Sesión urgente por el canal',
+    fecha: '2099-01-10', hora_inicio: '09:00', genera_multa_ausencia: false
+  });
+  assert.equal(crear.status, 201, JSON.stringify(crear.body));
+  const id = crear.body.eventoId;
+  const detalle = await request(app).get(`/api/eventos/${id}`).set(auth(admin));
+  assert.equal(detalle.body.evento.subtipo_asamblea, 'EXTRAORDINARIA');
+
+  const editar = await request(app).put(`/api/eventos/${id}`).set(auth(admin)).send({ subtipo_asamblea: 'ORDINARIA' });
+  assert.equal(editar.status, 200, JSON.stringify(editar.body));
+  const lista = await request(app).get('/api/eventos?tipo=ASAMBLEA').set(auth(admin));
+  assert.equal(lista.body.data.find((e) => e.id === id).subtipo_asamblea, 'ORDINARIA');
+
+  const sinSubtipo = await request(app).post('/api/eventos').set(auth(admin)).send({
+    tipo: 'ASAMBLEA', titulo: 'Asamblea Extraordinaria sin subtipo', fecha: '2099-01-11', hora_inicio: '09:00', genera_multa_ausencia: false
+  });
+  const [[fila]] = await db.query('SELECT subtipo_asamblea FROM eventos WHERE id = ?', [sinSubtipo.body.eventoId]);
+  assert.equal(fila.subtipo_asamblea, 'EXTRAORDINARIA', 'sin subtipo se deduce del título');
+});
+
+test('editar solo un campo de un evento conserva los demás', async () => {
+  const crear = await request(app).post('/api/eventos').set(auth(admin)).send({
+    tipo: 'ASAMBLEA', titulo: 'Asamblea con lugar propio', descripcion: 'Orden del día', lugar: 'Casa comunal',
+    fecha: '2099-02-10', hora_inicio: '09:00', hora_fin: '11:00', genera_multa_ausencia: false
+  });
+  assert.equal(crear.status, 201, JSON.stringify(crear.body));
+  const id = crear.body.eventoId;
+  assert.equal((await request(app).put(`/api/eventos/${id}`).set(auth(admin)).send({ titulo: 'Asamblea renombrada' })).status, 200);
+  const [[evento]] = await db.query('SELECT titulo, descripcion, lugar, hora_fin FROM eventos WHERE id = ?', [id]);
+  assert.deepEqual(
+    { ...evento, hora_fin: String(evento.hora_fin).slice(0, 5) },
+    { titulo: 'Asamblea renombrada', descripcion: 'Orden del día', lugar: 'Casa comunal', hora_fin: '11:00' }
+  );
+});

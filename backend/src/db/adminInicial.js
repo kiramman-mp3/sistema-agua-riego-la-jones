@@ -87,9 +87,9 @@ async function restablecerPasswordAdmin(conexion, cedulaEntrada) {
   try {
     await conexion.query(
       `UPDATE cuentas SET password_hash = ?, debe_cambiar_password = TRUE, estado = 'ACTIVA',
-              password_updated_at = UTC_TIMESTAMP(3), sesiones_validas_desde = UTC_TIMESTAMP(3)
+              password_updated_at = ?, sesiones_validas_desde = ?
        WHERE id = ?`,
-      [await hashPassword(passwordTemporal), cuenta.id]
+      [await hashPassword(passwordTemporal), new Date(), new Date(), cuenta.id]
     );
     await conexion.query('DELETE FROM intentos_login WHERE cuenta_id = ?', [cuenta.id]);
     await registrarAuditoria({

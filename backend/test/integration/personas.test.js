@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const request = require('supertest');
 
 const app = require('../../src/app');
+const db = require('../../src/config/db');
 const { crearUsuario, crearPersona, auth, crearSector, crearLote } = require('../helpers/fixtures');
 
 let admin, moreta;
@@ -92,4 +93,29 @@ test('la directiva ve las cuentas bloqueadas y las desbloquea sin cambiar la con
 
   assert.equal((await request(app).post(`/api/personas/${socio.personaId}/cuenta/desbloquear`).set(auth(socio))).status, 403);
   assert.equal((await request(app).get('/api/personas/cuentas-bloqueadas').set(auth(socio))).status, 403);
+});
+
+test('eliminar a una persona sin historial la borra con su cuenta y deja el rastro (AP-15)', async () => {
+  const { crearUsuario: nuevaCuenta } = require('../helpers/fixtures');
+  const persona = await nuevaCuenta();
+  const res = await request(app).delete(`/api/personas/${persona.personaId}`).set(auth(admin));
+  assert.equal(res.status, 200, JSON.stringify(res.body));
+  const [[{ quedan }]] = await db.query('SELECT COUNT(*) AS quedan FROM personas WHERE id = ?', [persona.personaId]);
+  assert.equal(Number(quedan), 0);
+  const [[{ cuentas }]] = await db.query('SELECT COUNT(*) AS cuentas FROM cuentas WHERE persona_id = ?', [persona.personaId]);
+  assert.equal(Number(cuentas), 0);
+  const [rastro] = await db.query("SELECT detalle FROM auditoria WHERE accion = 'ELIMINAR' AND entidad = 'personas' AND entidad_id = ?", [persona.personaId]);
+  assert.equal(rastro.length, 1);
+  assert.equal(rastro[0].detalle.cedula, persona.cedula);
+});
+
+test('no se elimina a una persona con historial ni el administrador se elimina a sí mismo', async () => {
+  const { crearObligacion } = require('../helpers/fixtures');
+  const { personaId } = await crearPersona();
+  await crearObligacion({ personaId });
+  const conHistorial = await request(app).delete(`/api/personas/${personaId}`).set(auth(admin));
+  assert.equal(conHistorial.status, 409);
+  assert.match(conHistorial.body.message, /INACTIVO/);
+  assert.equal((await request(app).delete(`/api/personas/${admin.personaId}`).set(auth(admin))).status, 403);
+  assert.equal((await request(app).delete('/api/personas/999999').set(auth(admin))).status, 404);
 });

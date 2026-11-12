@@ -232,6 +232,10 @@ async function createLote(req, res) {
           [datos.persona_id, r.insertId, datos.tipo_relacion, PORCENTAJE_TITULARIDAD, hoy()]
         );
       }
+      await registrarAuditoria({
+        conexion, cuentaId: req.user.cuentaId, accion: 'CREAR', entidad: 'lotes', entidadId: r.insertId, ip: req.ip,
+        detalle: { codigo: datos.codigo, sector_id: datos.sector_id, persona_id: datos.persona_id ?? null, latitud: datos.latitud_aproximada, longitud: datos.longitud_aproximada }
+      });
       return r.insertId;
     });
   } catch (error) {
@@ -240,44 +244,42 @@ async function createLote(req, res) {
     throw error;
   }
 
-  await registrarAuditoria({
-    cuentaId: req.user.cuentaId, accion: 'CREAR', entidad: 'lotes', entidadId: loteId, ip: req.ip,
-    detalle: { codigo: datos.codigo, sector_id: datos.sector_id, persona_id: datos.persona_id ?? null, latitud: datos.latitud_aproximada, longitud: datos.longitud_aproximada }
-  });
   return res.status(201).json({ status: 'OK', message: 'Lote georreferenciado creado correctamente.', loteId });
 }
 
 async function updateLote(req, res) {
   const { id } = s.idParam.parse(req.params);
-  const datos = loteUpdateSchema.parse(req.body);
+  const datos = s.soloEnviados(loteUpdateSchema.parse(req.body), req.body);
 
-  const [existentes] = await db.query('SELECT * FROM lotes WHERE id = ?', [id]);
-  if (!existentes.length) throw notFound('El lote no existe.');
-  const loteActual = existentes[0];
+  // Se lee y se escribe el lote dentro de la misma transacción, bloqueado: dos ediciones simultáneas no se pisan
+  // y el recálculo de cuotas compara con la superficie vigente. Si cambia la superficie, las cuotas anuales
+  // pendientes se recalculan en esta misma transacción.
+  const { cuotasRecalculadas, nuevoCodigo } = await withTransaction(async (conexion) => {
+    const [existentes] = await conexion.query('SELECT * FROM lotes WHERE id = ? FOR UPDATE', [id]);
+    if (!existentes.length) throw notFound('El lote no existe.');
+    const loteActual = existentes[0];
 
-  if (datos.sector_id && datos.sector_id !== loteActual.sector_id) {
-    const [sectores] = await db.query('SELECT id FROM sectores WHERE id = ? AND activo = TRUE', [datos.sector_id]);
-    if (!sectores.length) throw notFound('El sector seleccionado no existe o está inactivo.');
-  }
+    if (datos.sector_id && datos.sector_id !== loteActual.sector_id) {
+      const [sectores] = await conexion.query('SELECT id FROM sectores WHERE id = ? AND activo = TRUE', [datos.sector_id]);
+      if (!sectores.length) throw notFound('El sector seleccionado no existe o está inactivo.');
+    }
 
-  if (datos.codigo && datos.codigo !== loteActual.codigo) {
-    const [dup] = await db.query('SELECT id FROM lotes WHERE codigo = ? AND id != ?', [datos.codigo, id]);
-    if (dup.length) throw conflict('Este código de lote ya está registrado para otro lote.');
-  }
+    if (datos.codigo && datos.codigo !== loteActual.codigo) {
+      const [dup] = await conexion.query('SELECT id FROM lotes WHERE codigo = ? AND id != ?', [datos.codigo, id]);
+      if (dup.length) throw conflict('Este código de lote ya está registrado para otro lote.');
+    }
 
-  const nuevoSectorId = datos.sector_id !== undefined ? datos.sector_id : loteActual.sector_id;
-  const nuevoCodigo = datos.codigo !== undefined ? datos.codigo : loteActual.codigo;
-  const nuevaSuperficie = datos.superficie_m2 !== undefined ? datos.superficie_m2 : loteActual.superficie_m2;
-  const nuevoAncho = datos.ancho_m !== undefined ? datos.ancho_m : loteActual.ancho_m;
-  const nuevoLargo = datos.largo_m !== undefined ? datos.largo_m : loteActual.largo_m;
-  const nuevaLatitud = datos.latitud_aproximada !== undefined ? datos.latitud_aproximada : loteActual.latitud_aproximada;
-  const nuevaLongitud = datos.longitud_aproximada !== undefined ? datos.longitud_aproximada : loteActual.longitud_aproximada;
-  const nuevoRadio = datos.radio_error_m !== undefined ? datos.radio_error_m : loteActual.radio_error_m;
-  const nuevaReferencia = datos.referencia_ubicacion !== undefined ? datos.referencia_ubicacion : loteActual.referencia_ubicacion;
-  const nuevaObservacion = datos.observacion !== undefined ? datos.observacion : loteActual.observacion;
+    const nuevoSectorId = datos.sector_id !== undefined ? datos.sector_id : loteActual.sector_id;
+    const nuevoCodigo = datos.codigo !== undefined ? datos.codigo : loteActual.codigo;
+    const nuevaSuperficie = datos.superficie_m2 !== undefined ? datos.superficie_m2 : loteActual.superficie_m2;
+    const nuevoAncho = datos.ancho_m !== undefined ? datos.ancho_m : loteActual.ancho_m;
+    const nuevoLargo = datos.largo_m !== undefined ? datos.largo_m : loteActual.largo_m;
+    const nuevaLatitud = datos.latitud_aproximada !== undefined ? datos.latitud_aproximada : loteActual.latitud_aproximada;
+    const nuevaLongitud = datos.longitud_aproximada !== undefined ? datos.longitud_aproximada : loteActual.longitud_aproximada;
+    const nuevoRadio = datos.radio_error_m !== undefined ? datos.radio_error_m : loteActual.radio_error_m;
+    const nuevaReferencia = datos.referencia_ubicacion !== undefined ? datos.referencia_ubicacion : loteActual.referencia_ubicacion;
+    const nuevaObservacion = datos.observacion !== undefined ? datos.observacion : loteActual.observacion;
 
-  // Si cambia la superficie, las cuotas anuales pendientes del lote se recalculan en la misma transacción.
-  const cuotasRecalculadas = await withTransaction(async (conexion) => {
     await conexion.query(
       `UPDATE lotes
        SET sector_id = ?, codigo = ?, superficie_m2 = ?, ancho_m = ?, largo_m = ?,
@@ -286,22 +288,25 @@ async function updateLote(req, res) {
        WHERE id = ?`,
       [nuevoSectorId, nuevoCodigo, nuevaSuperficie, nuevoAncho, nuevoLargo, nuevaLatitud, nuevaLongitud, nuevoRadio, nuevaReferencia, nuevaObservacion, id]
     );
-    if (Number(nuevaSuperficie) === Number(loteActual.superficie_m2)) return [];
-    return finanzas.recalcularCuotasPendientesDeLote(conexion, { loteId: id, superficieM2: Number(nuevaSuperficie) });
-  });
-
-  await registrarAuditoria({
-    cuentaId: req.user.cuentaId,
-    accion: 'ACTUALIZAR',
-    entidad: 'lotes',
-    entidadId: id,
-    ip: req.ip,
-    detalle: {
-      codigo: nuevoCodigo, sector_id: nuevoSectorId,
-      ...(cuotasRecalculadas.length && {
-        superficie_anterior_m2: Number(loteActual.superficie_m2), superficie_nueva_m2: Number(nuevaSuperficie), cuotasRecalculadas
-      })
-    }
+    const recalculadas = Number(nuevaSuperficie) === Number(loteActual.superficie_m2)
+      ? []
+      : await finanzas.recalcularCuotasPendientesDeLote(conexion, { loteId: id, superficieM2: Number(nuevaSuperficie) });
+    // Si se recalculan cuotas, su rastro se guarda con ellas o no se guarda nada.
+    await registrarAuditoria({
+      conexion,
+      cuentaId: req.user.cuentaId,
+      accion: 'ACTUALIZAR',
+      entidad: 'lotes',
+      entidadId: id,
+      ip: req.ip,
+      detalle: {
+        codigo: nuevoCodigo, sector_id: nuevoSectorId,
+        ...(recalculadas.length && {
+          superficie_anterior_m2: Number(loteActual.superficie_m2), superficie_nueva_m2: Number(nuevaSuperficie), cuotasRecalculadas: recalculadas
+        })
+      }
+    });
+    return { cuotasRecalculadas: recalculadas, nuevoCodigo };
   });
 
   const aviso = cuotasRecalculadas.length
@@ -343,22 +348,23 @@ async function linkPersonaLote(req, res) {
     );
     // La deuda del agua sigue al lote: las cuotas anuales pendientes pasan al nuevo titular.
     const deudaTransferida = await finanzas.transferirDeudaAnualDeLote(conexion, { loteId, personaId: datos.persona_id });
+    // El traspaso mueve deuda: su auditoría va en la misma transacción.
+    await registrarAuditoria({
+      conexion,
+      cuentaId: req.user.cuentaId,
+      accion: anterior ? 'TRANSFERIR' : 'CREAR',
+      entidad: 'persona_lotes', entidadId: loteId, ip: req.ip,
+      detalle: {
+        lote: lotes[0].codigo,
+        anterior: anterior && { persona_id: anterior.persona_id, tipo_relacion: anterior.tipo_relacion, desde: anterior.fecha_desde },
+        nuevo: { persona_id: datos.persona_id, tipo_relacion: datos.tipo_relacion },
+        turnosReasignados: turnos.affectedRows,
+        deudaTransferida: deudaTransferida.obligaciones.length
+          ? { obligaciones: deudaTransferida.obligaciones.map(({ id, anio, valor }) => ({ id, anio, valor })), total: deudaTransferida.total }
+          : undefined
+      }
+    });
     return { lote: lotes[0], nuevo, anterior, turnosReasignados: turnos.affectedRows, deudaTransferida };
-  });
-
-  await registrarAuditoria({
-    cuentaId: req.user.cuentaId,
-    accion: resultado.anterior ? 'TRANSFERIR' : 'CREAR',
-    entidad: 'persona_lotes', entidadId: loteId, ip: req.ip,
-    detalle: {
-      lote: resultado.lote.codigo,
-      anterior: resultado.anterior && { persona_id: resultado.anterior.persona_id, tipo_relacion: resultado.anterior.tipo_relacion, desde: resultado.anterior.fecha_desde },
-      nuevo: { persona_id: datos.persona_id, tipo_relacion: datos.tipo_relacion },
-      turnosReasignados: resultado.turnosReasignados,
-      deudaTransferida: resultado.deudaTransferida.obligaciones.length
-        ? { obligaciones: resultado.deudaTransferida.obligaciones.map(({ id, anio, valor }) => ({ id, anio, valor })), total: resultado.deudaTransferida.total }
-        : undefined
-    }
   });
   const { obligaciones: deuda, total: deudaTotal } = resultado.deudaTransferida;
   const avisoDeuda = deuda.length

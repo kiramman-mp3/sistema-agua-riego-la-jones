@@ -39,8 +39,8 @@ export interface CredencialTemporal {
           </div>
           <div class="modal__body form-stack">
             <p>
-              Entregue estos datos a <strong>{{ credencial.nombre }}</strong
-              >. Al ingresar por primera vez deberá elegir una contraseña nueva.
+              Entregue estos datos a <strong>{{ credencial.nombre }}</strong>. Al ingresar por
+              primera vez deberá elegir una contraseña nueva.
             </p>
             <dl class="credencial">
               <div>

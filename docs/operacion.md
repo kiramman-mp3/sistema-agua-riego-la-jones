@@ -19,6 +19,15 @@ Lista ordenada para un servidor Linux con dominio propio. Cada paso evita un err
    ```
 
    MySQL escucha solo en local por defecto: no abra el puerto 3306.
+
+   `ALL PRIVILEGES` se limita a esta base y es necesario porque `npm run prod:preparar` y `npm run actualizar` aplican las migraciones con el mismo usuario (crean y modifican tablas, índices y claves foráneas, y algunas borran índices o tablas obsoletas). Si prefiere que el servidor web no pueda alterar el esquema, cree un segundo usuario solo para operar y use `junta_app` únicamente al migrar:
+
+   ```sql
+   CREATE USER 'junta_web'@'localhost' IDENTIFIED BY 'OTRA_CONTRASEÑA_LARGA';
+   GRANT SELECT, INSERT, UPDATE, DELETE ON junta_las_jones.* TO 'junta_web'@'localhost';
+   ```
+
+   En ese caso `backend/.env` lleva `junta_web` y, antes de cada actualización, se cambia temporalmente a `junta_app`.
 5. **Código y configuración:** clone el repositorio en `/opt/junta-las-jones` (propietario `junta`), copie `backend/.env.production.example` como `backend/.env` y complete: `DB_USER`, `DB_PASSWORD`, un `JWT_SECRET` nuevo, `FRONTEND_URL=https://su-dominio`, `ADMIN_CEDULA`/`ADMIN_NOMBRES`/`ADMIN_APELLIDOS`, `HOST=127.0.0.1` y `TRUST_PROXY=1`. Restrinja el archivo: `chmod 600 backend/.env`.
 6. **Preparar:** `npm run prod:preparar`. Instala, compila el frontend, migra y crea al primer administrador. **Anote la contraseña temporal: se muestra una sola vez.** El comando avisa si `HOST`, `TRUST_PROXY` o `FRONTEND_URL` no son coherentes entre sí.
 7. **Servicio y HTTPS:** instale `deploy/junta-backend.service.example` (sección 3) y configure Caddy (sección 2).
@@ -158,7 +167,7 @@ En producción el backend escribe **una línea JSON por evento** en la salida es
 VIGILAR_WEBHOOK=https://hooks.slack.com/services/XXX npm run vigilar
 ```
 
-El webhook recibe `{ "text": "...", "content": "..." }`, compatible con Slack, Discord y Mattermost. Variables opcionales: `VIGILAR_URL`, `VIGILAR_INTERVALO`, `VIGILAR_FALLOS` (3 fallos seguidos antes de avisar), `VIGILAR_RESPALDO_HORAS`. Con `--una-vez` hace una sola comprobación y sale con código 1 si falla, para usarlo desde cron.
+El webhook recibe `{ "text": "...", "content": "..." }`, compatible con Slack, Discord y Mattermost. Variables opcionales: `VIGILAR_URL`, `VIGILAR_INTERVALO`, `VIGILAR_FALLOS` (3 fallos seguidos antes de avisar), `VIGILAR_RESPALDO_HORAS`, `VIGILAR_DISCO_MIN_GB` (2: avisa con menos espacio libre en el disco del proyecto o de `backups/`), `VIGILAR_LENTITUD_MS` (2000: avisa si `/api/health` tarda más) y `VIGILAR_ERRORES_HORA` (20: avisa si hubo esa cantidad de errores 5xx en la última hora; el backend solo informa ese dato a consultas desde el mismo equipo). Cada aviso que no es una caída se envía una vez y vuelve a enviarse solo si el problema desaparece y reaparece. Para dejarlo siempre activo use [`deploy/junta-vigilante.service.example`](../deploy/junta-vigilante.service.example). Con `--una-vez` hace una sola comprobación y sale con código 1 si falla, para usarlo desde cron.
 
 Conviene además un monitor **externo** (por ejemplo UptimeRobot, gratuito) que consulte `https://su-dominio/api/health`: el vigilante corre en el mismo equipo y no puede avisar si el equipo entero se apaga.
 
@@ -171,4 +180,4 @@ Conviene además un monitor **externo** (por ejemplo UptimeRobot, gratuito) que 
 | `extract-zip` (vía `puppeteer`) | Escritura de archivos por enlaces simbólicos en un `.zip` | Solo se ejecuta si puppeteer **descarga** Chromium. El servicio usa el Edge o Chrome instalado (`CHROME_BIN`). Instale con `PUPPETEER_SKIP_DOWNLOAD=true npm ci`. |
 | `zod` 3.x (vía `chromium-bidi`) | Consumo de memoria con colecciones enormes | Solo valida mensajes del protocolo del navegador local, nunca datos de la red. |
 
-El servicio de WhatsApp escucha solo en `127.0.0.1` y exige token. Revise estos avisos de nuevo al actualizar `whatsapp-web.js`.
+El servicio de WhatsApp escucha solo en `127.0.0.1` y exige token. Revise estos avisos de nuevo al actualizar `whatsapp-web.js`. La decisión y sus mitigaciones están en [`architecture/adr/0001-riesgo-aceptado-whatsapp-web-js.md`](architecture/adr/0001-riesgo-aceptado-whatsapp-web-js.md). Para que el servicio arranque con el equipo y se reinicie si se cae, use [`deploy/junta-whatsapp.service.example`](../deploy/junta-whatsapp.service.example).

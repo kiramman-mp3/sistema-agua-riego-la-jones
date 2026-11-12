@@ -1,0 +1,21 @@
+# Vigilante de disponibilidad: avisa por webhook si el sistema no responde, responde lento, acumula errores 5xx,
+# se queda sin espacio en disco o el último respaldo es viejo. Ver docs/operacion.md, sección 3.
+# Copie como /etc/systemd/system/junta-vigilante.service, ajuste el webhook y ejecute:
+#   sudo systemctl daemon-reload && sudo systemctl enable --now junta-vigilante
+[Unit]
+Description=Junta de Agua La Jones - vigilante de disponibilidad
+After=junta-backend.service
+
+[Service]
+Type=simple
+User=junta
+WorkingDirectory=/opt/junta-las-jones
+Environment=VIGILAR_WEBHOOK=https://hooks.slack.com/services/XXX
+# Opcionales: VIGILAR_DISCO_MIN_GB=2, VIGILAR_LENTITUD_MS=2000, VIGILAR_ERRORES_HORA=20, VIGILAR_RESPALDO_HORAS=26
+ExecStart=/usr/bin/node scripts/vigilar.js
+Restart=always
+RestartSec=10
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

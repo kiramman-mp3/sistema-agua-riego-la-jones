@@ -190,7 +190,7 @@ erDiagram
 - **`personas`**: Miembros de la Junta. La cédula es única y obligatoria.
 - **`roles`**: Perfiles de acceso (`ADMIN`, `USUARIO`).
 - **`cuentas`**: Credenciales de acceso vinculadas a una persona (`persona_id` es `UNIQUE`). Posee directamete un `rol_id`. Incluye control `debe_cambiar_password`.
-- **`intentos_login`**: Intentos fallidos de inicio de sesión por par cuenta + IP (`cuenta_id`, `ip`, `intentos`, `bloqueado_hasta` en UTC). Al llegar a 5 intentos, ese par queda bloqueado 15 minutos; un inicio de sesión correcto limpia los intentos de esa IP y el borrado de la cuenta los elimina en cascada.
+- **`intentos_login`**: Intentos fallidos de inicio de sesión por par cuenta + IP (`cuenta_id`, `ip`, `intentos`, `bloqueado_hasta` en UTC). Al llegar a 5 intentos dentro de 15 minutos desde el primero (`primer_fallo_en`, migración 034), ese par queda bloqueado 15 minutos; un fallo fuera de esa ventana vuelve a contar desde 1. Las filas sin bloqueo vigente y sin cambios en 30 días se borran al arrancar el servidor y una vez al día; un inicio de sesión correcto limpia los intentos de esa IP y el borrado de la cuenta los elimina en cascada.
 - **`cargos_directiva` & `miembros_directiva`**: Mantiene la historia de directivas (Presidente, Tesorero, Secretario, Vocales).
 
 ### 4.2. Dominio de Lotes y Riego

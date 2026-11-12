@@ -12,6 +12,7 @@ const { autenticacionOpcional } = require('./middlewares/authMiddleware');
 const { servirDocumento } = require('./controllers/documentoController');
 const requestLogger = require('./middlewares/requestLogger');
 const logger = require('./shared/logger');
+const { errores5xx } = require('./shared/metricas');
 
 const app = express();
 
@@ -57,13 +58,25 @@ app.use(express.urlencoded({ extended: false, limit: '1mb' }));
 // Documentos subidos: el acceso depende del tipo de documento (ver documentoController).
 app.get('/uploads/documentos/:archivo', autenticacionOpcional, servirDocumento);
 
-// Comprobación de salud: verifica también la conexión con la base de datos.
+// Comprobación de salud: verifica también la conexión con la base de datos. Si la base no responde a tiempo
+// devuelve 503 (TIMEOUT), así el proxy y el vigilante detectan una base colgada.
 app.get('/api/health', async (req, res) => {
+  let temporizador;
+  const limite = new Promise((resolver) => {
+    temporizador = setTimeout(() => resolver('TIMEOUT'), env.HEALTH_TIMEOUT_MS);
+  });
   try {
-    await db.query('SELECT 1');
-    res.json({ status: 'OK', database: 'OK', timestamp: new Date().toISOString() });
+    const estado = await Promise.race([db.query('SELECT 1').then(() => 'OK'), limite]);
+    // El vigilante corre en el mismo equipo: solo a él se le informa cuántos errores 5xx hubo en la última hora.
+    const local = ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.ip);
+    if (estado === 'OK') {
+      return res.json({ status: 'OK', database: 'OK', timestamp: new Date().toISOString(), ...(local ? { errores5xxUltimaHora: errores5xx.total() } : {}) });
+    }
+    return res.status(503).json({ status: 'ERROR', database: 'TIMEOUT', timestamp: new Date().toISOString() });
   } catch {
-    res.status(503).json({ status: 'ERROR', database: 'UNAVAILABLE', timestamp: new Date().toISOString() });
+    return res.status(503).json({ status: 'ERROR', database: 'UNAVAILABLE', timestamp: new Date().toISOString() });
+  } finally {
+    clearTimeout(temporizador);
   }
 });
 

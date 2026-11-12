@@ -29,10 +29,17 @@ export function agruparPorFecha<T extends { fecha: string; hora_inicio?: string 
 export type SubtipoAsamblea = 'ORDINARIA' | 'EXTRAORDINARIA';
 
 /**
- * Subtipo de una asamblea. No se guarda aparte: es extraordinaria si su título lo dice, igual que
- * en el panel de la directiva y en el filtro del servidor. Las mingas no tienen subtipo.
+ * Subtipo de una asamblea: el que guardó la directiva al crearla o, en datos anteriores que no lo
+ * traen, el que se deduce del título. Las mingas no tienen subtipo.
  */
-export function subtipoAsamblea(evento: { tipo: string; titulo: string }): SubtipoAsamblea | null {
+export function subtipoAsamblea(evento: {
+  tipo: string;
+  titulo: string;
+  subtipo_asamblea?: string | null;
+}): SubtipoAsamblea | null {
   if (evento.tipo !== 'ASAMBLEA') return null;
+  if (evento.subtipo_asamblea === 'ORDINARIA' || evento.subtipo_asamblea === 'EXTRAORDINARIA') {
+    return evento.subtipo_asamblea;
+  }
   return /extraordinaria/i.test(evento.titulo) ? 'EXTRAORDINARIA' : 'ORDINARIA';
 }

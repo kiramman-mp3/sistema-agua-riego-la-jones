@@ -267,3 +267,30 @@ test('actualiza y elimina sectores con validación de dependencias (H-21)', asyn
   const [[secInactivo]] = await db.query('SELECT activo FROM sectores WHERE id = ?', [sectorVacio]);
   assert.equal(secInactivo.activo, 0);
 });
+
+test('si no se puede guardar la auditoría, el traspaso del lote se revierte completo (AP-05)', async () => {
+  const anterior = await crearUsuario();
+  const nuevo = await crearUsuario();
+  const loteId = await crearLote({ sectorId: sectorAlto, personaId: anterior.personaId, codigo: 'LJA-077' });
+  await db.query('RENAME TABLE auditoria TO auditoria_fuera');
+  try {
+    const res = await request(app).post(`/api/lotes/${loteId}/vincular-persona`).set(auth(admin)).send({ persona_id: nuevo.personaId });
+    assert.equal(res.status, 500);
+  } finally {
+    await db.query('RENAME TABLE auditoria_fuera TO auditoria');
+  }
+  const [[titular]] = await db.query('SELECT persona_id FROM persona_lotes WHERE lote_id = ?', [loteId]);
+  assert.equal(titular.persona_id, anterior.personaId, 'el lote sigue con su titular anterior');
+});
+
+test('dos ediciones simultáneas de un lote no se pisan (AP-09)', async () => {
+  const loteId = await crearLote({ sectorId: sectorAlto, codigo: 'LJA-088', superficie: 5000 });
+  const editar = (cuerpo) => request(app).put(`/api/lotes/${loteId}`).set(auth(admin)).send(cuerpo);
+  const respuestas = await Promise.all([
+    editar({ referencia_ubicacion: 'Junto al reservorio' }),
+    editar({ observacion: 'Medido con GPS' })
+  ]);
+  assert.deepEqual(respuestas.map((r) => r.status), [200, 200]);
+  const [[lote]] = await db.query('SELECT referencia_ubicacion, observacion FROM lotes WHERE id = ?', [loteId]);
+  assert.deepEqual(lote, { referencia_ubicacion: 'Junto al reservorio', observacion: 'Medido con GPS' });
+});

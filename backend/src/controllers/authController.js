@@ -1,13 +1,22 @@
 const { z } = require('zod');
 const db = require('../config/db');
+const env = require('../config/env');
 const { registrarAuditoria } = require('../services/auditService');
 const { withTransaction } = require('../shared/transaction');
 const { firmarToken, ALCANCE_CAMBIO_PASSWORD } = require('../middlewares/authMiddleware');
-const { compararPassword, hashPassword, problemaConPassword, HASH_FICTICIO } = require('../shared/passwords');
+const { compararPassword, hashPassword, necesitaRehash, problemaConPassword, HASH_FICTICIO } = require('../shared/passwords');
 const { badRequest, unauthorized, notFound } = require('../shared/errors');
 
 const MAX_INTENTOS = 5;
 const MINUTOS_BLOQUEO = 15;
+/** Los intentos fallidos solo cuentan dentro de esta ventana desde el primero. */
+const MINUTOS_VENTANA = 15;
+/** Desde cuántas redes distintas con fallos en la última hora se considera un ataque distribuido a la cuenta. */
+const REDES_SOSPECHOSAS = 5;
+/** Retraso máximo de la respuesta a un intento fallido sobre una cuenta atacada desde muchas redes. */
+const RETRASO_MAXIMO_MS = 5000;
+/** Días que se conservan los intentos fallidos sin bloqueo vigente. */
+const DIAS_CONSERVAR_INTENTOS = 30;
 const MENSAJE_CREDENCIALES = 'Credenciales incorrectas o la cuenta no está habilitada o se encuentra bloqueada temporalmente.';
 
 const loginSchema = z.object({
@@ -59,18 +68,66 @@ async function estaBloqueada(cuentaId, ip) {
 }
 
 /**
- * Suma un intento fallido de la cuenta desde esa IP y bloquea ese par al llegar al máximo. Es atómico:
- * en el UPDATE, la segunda asignación aún ve el valor anterior de `intentos`. Devuelve true si quedó bloqueado.
+ * Suma un intento fallido de la cuenta desde esa IP y bloquea ese par al llegar al máximo dentro de la ventana.
+ * Un fallo fuera de la ventana vuelve a contar desde 1. Es atómico: MySQL evalúa las asignaciones en orden y cada
+ * una ve los valores ya cambiados, por eso `bloqueado_hasta` va primero (ve `intentos` y `primer_fallo_en`
+ * anteriores) y `primer_fallo_en` al final (ve el `intentos` nuevo). Devuelve true si quedó bloqueado.
  */
 async function registrarIntentoFallido(cuentaId, ip) {
+  const enVentana = `(primer_fallo_en IS NOT NULL AND primer_fallo_en >= UTC_TIMESTAMP() - INTERVAL ${MINUTOS_VENTANA} MINUTE)`;
   await db.query(
-    `INSERT INTO intentos_login (cuenta_id, ip, intentos) VALUES (?, ?, 1)
+    `INSERT INTO intentos_login (cuenta_id, ip, intentos, primer_fallo_en) VALUES (?, ?, 1, UTC_TIMESTAMP())
      ON DUPLICATE KEY UPDATE
-       bloqueado_hasta = CASE WHEN intentos + 1 >= ? THEN UTC_TIMESTAMP() + INTERVAL ? MINUTE ELSE bloqueado_hasta END,
-       intentos = CASE WHEN intentos + 1 >= ? THEN 0 ELSE intentos + 1 END`,
+       bloqueado_hasta = CASE WHEN ${enVentana} AND intentos + 1 >= ? THEN UTC_TIMESTAMP() + INTERVAL ? MINUTE ELSE bloqueado_hasta END,
+       intentos = CASE WHEN NOT ${enVentana} THEN 1 WHEN intentos + 1 >= ? THEN 0 ELSE intentos + 1 END,
+       primer_fallo_en = CASE WHEN intentos <= 1 THEN UTC_TIMESTAMP() ELSE primer_fallo_en END`,
     [cuentaId, ip, MAX_INTENTOS, MINUTOS_BLOQUEO, MAX_INTENTOS]
   );
   return estaBloqueada(cuentaId, ip);
+}
+
+/** Cantidad de redes (IP) distintas con intentos fallidos sobre la cuenta en la última hora. */
+async function redesConFallos(cuentaId) {
+  const [[{ redes }]] = await db.query(
+    'SELECT COUNT(*) AS redes FROM intentos_login WHERE cuenta_id = ? AND updated_at >= UTC_TIMESTAMP() - INTERVAL 1 HOUR',
+    [cuentaId]
+  );
+  return Number(redes);
+}
+
+const esperar = (ms) => new Promise((resolver) => setTimeout(resolver, ms));
+
+/**
+ * Freno a los ataques distribuidos: el bloqueo es por cuenta e IP, así que quien prueba contraseñas desde muchas
+ * redes no se bloquea nunca. Desde REDES_SOSPECHOSAS redes con fallos en la última hora, cada respuesta fallida
+ * se retrasa (más cuantas más redes) y se deja una alerta en la auditoría una vez por hora. No bloquea la cuenta,
+ * para que un atacante no pueda dejar fuera al dueño.
+ */
+async function frenarAtaqueDistribuido(cuentaId, ip) {
+  const redes = await redesConFallos(cuentaId);
+  if (redes < REDES_SOSPECHOSAS) return;
+  const [[{ alertas }]] = await db.query(
+    `SELECT COUNT(*) AS alertas FROM auditoria
+     WHERE accion = 'ALERTA' AND entidad = 'cuentas' AND entidad_id = ? AND fecha >= UTC_TIMESTAMP() - INTERVAL 1 HOUR`,
+    [cuentaId]
+  );
+  if (!Number(alertas)) {
+    await registrarAuditoria({
+      cuentaId: null, accion: 'ALERTA', entidad: 'cuentas', entidadId: cuentaId, ip,
+      detalle: { intentosDesdeVariasRedes: redes }
+    });
+  }
+  if (!env.esTest) await esperar(Math.min(RETRASO_MAXIMO_MS, (redes - REDES_SOSPECHOSAS + 1) * 1000));
+}
+
+/** Borra los intentos fallidos viejos que ya no bloquean nada. Devuelve cuántas filas eliminó. */
+async function purgarIntentosViejos(conexion = db) {
+  const [r] = await conexion.query(
+    `DELETE FROM intentos_login
+     WHERE updated_at < UTC_TIMESTAMP() - INTERVAL ? DAY AND (bloqueado_hasta IS NULL OR bloqueado_hasta < UTC_TIMESTAMP())`,
+    [DIAS_CONSERVAR_INTENTOS]
+  );
+  return r.affectedRows;
 }
 
 /**
@@ -95,7 +152,9 @@ async function login(req, res) {
   }
 
   if (!coincide) {
-    if (await registrarIntentoFallido(cuenta.cuenta_id, ip)) {
+    const bloqueada = await registrarIntentoFallido(cuenta.cuenta_id, ip);
+    await frenarAtaqueDistribuido(cuenta.cuenta_id, ip);
+    if (bloqueada) {
       await registrarAuditoria({
         cuentaId: cuenta.cuenta_id, accion: 'BLOQUEO', entidad: 'cuentas', entidadId: cuenta.cuenta_id, ip: req.ip,
         detalle: { minutos: MINUTOS_BLOQUEO }
@@ -105,6 +164,11 @@ async function login(req, res) {
   }
 
   await db.query('UPDATE cuentas SET ultimo_acceso = UTC_TIMESTAMP() WHERE id = ?', [cuenta.cuenta_id]);
+  // Un hash bcrypt anterior se reemplaza por scrypt con la contraseña que acaba de comprobarse. No cambia
+  // password_updated_at: las sesiones abiertas siguen valiendo.
+  if (necesitaRehash(cuenta.password_hash)) {
+    await db.query('UPDATE cuentas SET password_hash = ? WHERE id = ?', [await hashPassword(password), cuenta.cuenta_id]);
+  }
   // Entrar bien limpia los intentos de esta IP; los bloqueos de otras IP siguen vigentes.
   await db.query('DELETE FROM intentos_login WHERE cuenta_id = ? AND ip = ?', [cuenta.cuenta_id, ip]);
 
@@ -139,9 +203,11 @@ async function changePassword(req, res) {
   const hash = await hashPassword(nuevaPassword);
   await withTransaction(async (conexion) => {
     await conexion.query(
-      `UPDATE cuentas SET password_hash = ?, debe_cambiar_password = FALSE, password_updated_at = UTC_TIMESTAMP(3)
+      `UPDATE cuentas SET password_hash = ?, debe_cambiar_password = FALSE, password_updated_at = ?
        WHERE id = ?`,
-      [hash, req.user.cuentaId]
+      // Con la hora de este servidor, la misma que firma el token (`ts`): un desfase con el reloj de MySQL
+      // no invalida el token nuevo que se entrega a continuación.
+      [hash, new Date(), req.user.cuentaId]
     );
     await registrarAuditoria({
       conexion, cuentaId: req.user.cuentaId, accion: 'MODIFICAR', entidad: 'cuentas', entidadId: req.user.cuentaId, ip: req.ip,
@@ -159,7 +225,7 @@ async function changePassword(req, res) {
  * (también los de otros equipos donde se recordó la sesión).
  */
 async function logout(req, res) {
-  await db.query('UPDATE cuentas SET sesiones_validas_desde = UTC_TIMESTAMP(3) WHERE id = ?', [req.user.cuentaId]);
+  await db.query('UPDATE cuentas SET sesiones_validas_desde = ? WHERE id = ?', [new Date(), req.user.cuentaId]);
   await registrarAuditoria({ cuentaId: req.user.cuentaId, accion: 'LOGOUT', entidad: 'cuentas', entidadId: req.user.cuentaId, ip: req.ip });
   return res.json({ status: 'OK', message: 'Sesión cerrada.' });
 }
@@ -184,4 +250,4 @@ async function getMe(req, res) {
   });
 }
 
-module.exports = { login, logout, changePassword, getMe };
+module.exports = { login, logout, changePassword, getMe, purgarIntentosViejos };
