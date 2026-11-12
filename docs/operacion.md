@@ -91,6 +91,21 @@ tar -xzf backups/junta-20261026-023000.uploads.tar.gz -C backend
 
 Un respaldo que nunca se restauró no está comprobado. Una vez al mes restaure el último en una base de prueba (`DB_NAME=junta_prueba npm run respaldo -- --restaurar <archivo>`, creando antes la base vacía) y compruebe que los conteos de `personas` y `pagos` coinciden.
 
+### Primera actualización desde `v1.0.5`
+
+`v1.0.5` no trae el script `npm run actualizar` (llegó en `v1.1.0`). La primera vez se trae el código a mano y luego se usa el script, que hace el respaldo antes de migrar:
+
+```bash
+cd /opt/junta-las-jones
+git fetch --tags origin
+git checkout v1.3.2
+npm run actualizar -- v1.3.2 --reiniciar
+```
+
+Como el código ya cambió antes de ejecutar el script, las instrucciones de vuelta atrás que imprime dicen `git checkout v1.3.2`: en esta primera vez, la versión anterior es **`v1.0.5`** (usar `git checkout v1.0.5` en el paso 2). El procedimiento se ensayó el 2026-11-13 sobre una copia en `v1.0.5`: reinstaló las dependencias, aplicó las migraciones 031 a 037, dejó los lotes sin superficie con la nota "Falta registrar la superficie del lote." (sin inventar hectáreas) y desactivó la tarifa de agua por lote.
+
+Después de actualizar: registre en **Tarifas** la tarifa del agua **por hectárea**, complete la superficie de los lotes y cada persona deberá iniciar sesión de nuevo una vez (la sesión pasó a una cookie segura).
+
 ### Actualizar y volver atrás
 
 Las versiones estables se publican como etiquetas de git (`v1.1.0`, `v1.2.0`…) en `main`. Para actualizar el servidor a una de ellas:
