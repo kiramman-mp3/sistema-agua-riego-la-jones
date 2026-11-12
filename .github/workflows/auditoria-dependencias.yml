@@ -22,7 +22,7 @@ jobs:
         working-directory: ${{ matrix.paquete }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 26
       # Falla ante avisos altos o críticos en lo que se instala en el servidor.
@@ -36,7 +36,7 @@ jobs:
         working-directory: whatsapp-service
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 26
       # Sus avisos conocidos (extract-zip y zod dentro de whatsapp-web.js) no se pueden corregir sin bajar de versión;
