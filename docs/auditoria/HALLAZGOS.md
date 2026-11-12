@@ -8,6 +8,35 @@
 
 No se encontraron hallazgos CRÍTICOS. La siguiente tabla resume el resto; el detalle de cada uno va después.
 
+## Estado de la corrección (2026-11-13)
+
+| ID | Estado | Versión | Nota |
+|---|---|---|---|
+| AP-01 | Corregido | `v1.1.0` | `031` sin superficie inventada en producción, `033` desactiva la tarifa por lote, aviso en Facturación anual. La limpieza de los lotes de prueba del VPS queda para el despliegue |
+| AP-02 | Pendiente | — | Fuera del plan: módulo 3.6 de la cotización (respaldos automáticos externos) |
+| AP-03 | Corregido | `v1.1.0` | `GET_LOCK` en el migrador, `npm run actualizar` con vuelta atrás, `docs/operacion.md` |
+| AP-04 | Corregido | `v1.2.0` | `queueLimit`, `connectTimeout`, tiempo límite de consultas y `/api/health` con 503 `TIMEOUT` |
+| AP-05 | Corregido | `v1.2.0` | Eventos, mingas y lotes registran la auditoría en su transacción |
+| AP-06 | Parcial | `v1.2.0` | Intentos con ventana de 15 min, alerta y retraso ante ataques desde muchas redes. El segundo factor (TOTP) va en la fase 5 |
+| AP-07 | Aceptado | `v1.2.0` | ADR 0001 con mitigaciones |
+| AP-08 | Corregido | `v1.2.0` | Vigilante con disco, lentitud y errores 5xx; unidad `systemd` |
+| AP-09 | Corregido | `v1.2.0` | `FOR UPDATE` en la edición de lotes; además, las ediciones parciales ya no borran campos omitidos |
+| AP-10 | Corregido | `v1.2.0` | |
+| AP-11 | Pendiente | — | Fase 5 |
+| AP-12 | Corregido | `v1.2.0` | Purga diaria de intentos viejos |
+| AP-13 | Documentado | `v1.2.0` | Se explica por qué el usuario necesita DDL y un usuario opcional solo de operación |
+| AP-14 | Corregido | `v1.2.0` | `npm update` en los cuatro paquetes; 0 avisos altos en backend y frontend |
+| AP-15 | Corregido | `v1.2.0` | Cobertura en CI (frontend 50,8 % de líneas). Al probar `deletePersona` se encontró que fallaba siempre: corregido |
+| AP-16 | Pendiente de comprobar | — | Se resuelve con la limpieza del VPS si sus datos son de prueba |
+| AP-17 | Corregido | `v1.2.0` | Migración 036 |
+| AP-18 | Corregido | `v1.2.0` | |
+| AP-19 | Corregido | `v1.2.0` | `deploy/junta-whatsapp.service.example` |
+| AP-20 a AP-23 | Sin cambios | — | Informativos |
+| AP-24 | Corregido | `v1.2.0` | `allowedCommonJsDependencies` |
+| AP-25 | Corregido | `v1.2.0` | `crypto.scrypt`; los hashes bcrypt se convierten al iniciar sesión |
+| AP-26 | Corregido | `v1.1.0` | E2E 186/186 en local tras la fase 4; CI en verde |
+| AP-27 | Corregido | `v1.2.0` | Migración 035, columna `subtipo_asamblea` |
+
 | ID | Severidad | Categoría | Título |
 |---|---|---|---|
 | AP-01 | ALTO | Base de datos / Reglas de negocio | Actualizar desde `v1.0.5` altera los datos de cobro: superficie inventada y tarifa reinterpretada |

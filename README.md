@@ -91,8 +91,8 @@ Las organizaciones comunitarias de riego suelen gestionar su padrón de socios, 
   - Sistema de migraciones SQL y JS versionadas y ordenadas
 * **Pruebas y Calidad de Código:**
   - ESLint para análisis estático en frontend, backend y microservicio
-  - Vitest (227 pruebas unitarias en frontend)
-  - Runner nativo de Node (`node --test`) con base de datos real (206 pruebas unitarias y de integración en backend)
+  - Vitest (277 pruebas unitarias en frontend, con cobertura medida en CI)
+  - Runner nativo de Node (`node --test`) con base de datos real (244 pruebas unitarias y de integración en backend, con cobertura medida en CI)
   - Playwright para pruebas E2E automatizadas (186 pruebas, con revisión de accesibilidad WCAG AA mediante axe-core en ambos temas)
 * **Despliegue e Infraestructura:**
   - Docker y Docker Compose para el servicio de base de datos
@@ -284,7 +284,10 @@ npm run prod
 | Backend | `npm run db:setup` | Prepara la base de datos e inicializa el primer administrador en producción |
 | Backend | `npm run db:reset-admin -- <cédula>` | Recupera a un administrador que perdió su contraseña (genera una temporal; solo con acceso al servidor) |
 | Backend | `npm run db:seed` | Siembra usuarios, turnos, lotes y cobros simulados para demostración |
-| Frontend | `npm test -- --watch=false` | Ejecuta las 275 pruebas unitarias con Vitest |
+| Frontend | `npm test -- --watch=false` | Ejecuta las 277 pruebas unitarias con Vitest |
+| Frontend | `npm run test:cobertura` | Ejecuta las pruebas y muestra la cobertura (la usa la CI) |
+| Backend | `npm run test:cobertura` | Ejecuta las pruebas del backend y muestra la cobertura (la usa la CI) |
+| Raíz | `npm run vigilar` | Vigila `/api/health`, el espacio en disco, la lentitud, los errores 5xx y la antigüedad del respaldo, y avisa por webhook |
 | Frontend | `npm run build` | Compila el bundle optimizado para despliegue en producción |
 
 ---
@@ -365,7 +368,7 @@ Todos los formularios del panel siguen las mismas reglas para evitar errores de 
 Los cobros en caja piden confirmar el monto, la persona y el medio de pago antes de registrarse.
 
 ### Migraciones y Base de Datos
-El proyecto cuenta con 32 migraciones versionadas y aplicadas de forma secuencial (`backend/database/migrations/`). Cada cambio estructural en tablas, índices, catálogos o restricciones foráneas se realiza a través de un archivo nuevo numerado, impidiendo inconsistencias entre entornos de desarrollo y producción.
+El proyecto cuenta con 36 migraciones versionadas y aplicadas de forma secuencial (`backend/database/migrations/`). Cada cambio estructural en tablas, índices, catálogos o restricciones foráneas se realiza a través de un archivo nuevo numerado, impidiendo inconsistencias entre entornos de desarrollo y producción.
 
 ### Manejo de Fechas y Zona Horaria
 La Junta de Agua opera en la zona horaria oficial de Ecuador continental (`America/Guayaquil`, UTC-5). En la base de datos:
