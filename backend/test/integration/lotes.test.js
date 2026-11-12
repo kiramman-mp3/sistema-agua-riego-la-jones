@@ -150,26 +150,54 @@ test('valida las coordenadas y el sector al crear un lote', async () => {
   assert.equal((await request(app).post('/api/lotes').set(auth(admin)).send({ sector_id: 999999, codigo: 'LJA-042', superficie_m2: 1000 })).status, 404);
 });
 
-test('detecta y advierte deudas de agua pendientes del titular anterior al transferir titularidad (H-09)', async () => {
+test('la deuda de agua sigue al lote: las cuotas pendientes pasan al nuevo titular y las pagadas se quedan (H-09)', async () => {
   const titular = await crearUsuario();
   const nuevoTitular = await crearUsuario();
   const loteId = await crearLote({ sectorId: sectorAlto, codigo: 'LJA-099' });
+  const otroLoteId = await crearLote({ sectorId: sectorAlto, codigo: 'LJA-098', personaId: titular.personaId });
 
-  // Asignar primer titular
   await request(app).post(`/api/lotes/${loteId}/vincular-persona`).set(auth(admin)).send({ persona_id: titular.personaId, porcentaje: 100 });
 
-  // Crear obligación pendiente de agua para el primer titular
-  await db.query(
-    "INSERT INTO obligacion_anual_agua (persona_id, periodo_anio, valor_total, estado, fecha_emision, fecha_vencimiento) VALUES (?, 2026, 30.00, 'PENDIENTE', '2026-01-01', '2026-12-31')",
-    [titular.personaId]
+  const emitir = (lote, anio, valor, estado) => db.query(
+    "INSERT INTO obligacion_anual_agua (persona_id, lote_id, periodo_anio, valor_total, estado, fecha_emision, fecha_vencimiento) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    [titular.personaId, lote, anio, valor, estado, `${anio}-01-01`, `${anio}-12-31`]
   );
+  await emitir(loteId, 2025, 30, 'PENDIENTE');
+  await emitir(loteId, 2026, 45.5, 'PENDIENTE');
+  await emitir(loteId, 2024, 20, 'PAGADA');
+  await emitir(otroLoteId, 2026, 99, 'PENDIENTE');
 
-  // Transferir al nuevo titular
+  const previa = await request(app).get(`/api/lotes/${loteId}/deuda-agua`).set(auth(admin));
+  assert.equal(previa.status, 200, JSON.stringify(previa.body));
+  assert.equal(previa.body.data.total, 75.5);
+  assert.deepEqual(previa.body.data.obligaciones.map((o) => o.anio), [2025, 2026]);
+  assert.equal((await request(app).get(`/api/lotes/${loteId}/deuda-agua`).set(auth(nuevoTitular))).status, 403);
+
   const res = await request(app).post(`/api/lotes/${loteId}/vincular-persona`).set(auth(admin)).send({ persona_id: nuevoTitular.personaId, porcentaje: 100 });
-  assert.equal(res.status, 200);
-  assert.match(res.body.message, /Advertencia: El titular anterior registra 1 obligación\(es\) pendiente\(s\) de agua/);
-  assert.ok(Array.isArray(res.body.advertenciaDeudas));
-  assert.equal(res.body.advertenciaDeudas.length, 1);
+  assert.equal(res.status, 200, JSON.stringify(res.body));
+  assert.match(res.body.message, /2 cuota\(s\) anual\(es\) de agua pendiente\(s\) del lote \(total \$75\.50\) pasaron al nuevo titular/);
+  assert.equal(res.body.deudaTransferida.total, 75.5);
+
+  const [filas] = await db.query('SELECT lote_id, periodo_anio, estado, persona_id FROM obligacion_anual_agua ORDER BY lote_id, periodo_anio');
+  const dueno = (lote, anio) => Number(filas.find((f) => f.lote_id === lote && f.periodo_anio === anio).persona_id);
+  assert.equal(dueno(loteId, 2025), nuevoTitular.personaId);
+  assert.equal(dueno(loteId, 2026), nuevoTitular.personaId);
+  assert.equal(dueno(loteId, 2024), titular.personaId, 'la pagada queda como historial de quien pagó');
+  assert.equal(dueno(otroLoteId, 2026), titular.personaId, 'las de otro lote del titular anterior no se mueven');
+
+  const [[auditoria]] = await db.query("SELECT detalle FROM auditoria WHERE entidad = 'persona_lotes' AND accion = 'TRANSFERIR' AND entidad_id = ? ORDER BY id DESC LIMIT 1", [loteId]);
+  const detalle = typeof auditoria.detalle === 'string' ? JSON.parse(auditoria.detalle) : auditoria.detalle;
+  assert.equal(detalle.deudaTransferida.obligaciones.length, 2);
+});
+
+test('transferir un lote sin cuotas pendientes no menciona deuda', async () => {
+  const titular = await crearUsuario();
+  const nuevoTitular = await crearUsuario();
+  const loteId = await crearLote({ sectorId: sectorAlto, codigo: 'LJA-097', personaId: titular.personaId });
+  const res = await request(app).post(`/api/lotes/${loteId}/vincular-persona`).set(auth(admin)).send({ persona_id: nuevoTitular.personaId, porcentaje: 100 });
+  assert.equal(res.status, 200, JSON.stringify(res.body));
+  assert.doesNotMatch(res.body.message, /cuota/);
+  assert.equal(res.body.deudaTransferida, undefined);
 });
 
 test('edita un lote existente con validación de código único y sector (H-01)', async () => {

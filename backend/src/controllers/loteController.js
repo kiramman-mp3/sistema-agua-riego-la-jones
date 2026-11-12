@@ -331,17 +331,6 @@ async function linkPersonaLote(req, res) {
       throw badRequest('El lote ya pertenece a este usuario.');
     }
 
-    // Verificar si el titular anterior registra obligaciones anuales pendientes
-    let deudasPreviasLote = [];
-    if (anterior) {
-      const [pendientes] = await conexion.query(
-        `SELECT id, periodo_anio, valor_total FROM obligacion_anual_agua
-         WHERE persona_id = ? AND estado = 'PENDIENTE'`,
-        [anterior.persona_id]
-      );
-      deudasPreviasLote = pendientes;
-    }
-
     await conexion.query('DELETE FROM persona_lotes WHERE lote_id = ?', [loteId]);
     await conexion.query(
       `INSERT INTO persona_lotes (persona_id, lote_id, tipo_relacion, porcentaje, fecha_desde, observacion) VALUES (?, ?, ?, ?, ?, ?)`,
@@ -352,7 +341,9 @@ async function linkPersonaLote(req, res) {
       "UPDATE turnos_riego SET persona_id = ? WHERE lote_id = ? AND estado = 'ACTIVO' AND persona_id <> ?",
       [datos.persona_id, loteId, datos.persona_id]
     );
-    return { lote: lotes[0], nuevo, anterior, turnosReasignados: turnos.affectedRows, deudasPreviasLote };
+    // La deuda del agua sigue al lote: las cuotas anuales pendientes pasan al nuevo titular.
+    const deudaTransferida = await finanzas.transferirDeudaAnualDeLote(conexion, { loteId, personaId: datos.persona_id });
+    return { lote: lotes[0], nuevo, anterior, turnosReasignados: turnos.affectedRows, deudaTransferida };
   });
 
   await registrarAuditoria({
@@ -364,21 +355,34 @@ async function linkPersonaLote(req, res) {
       anterior: resultado.anterior && { persona_id: resultado.anterior.persona_id, tipo_relacion: resultado.anterior.tipo_relacion, desde: resultado.anterior.fecha_desde },
       nuevo: { persona_id: datos.persona_id, tipo_relacion: datos.tipo_relacion },
       turnosReasignados: resultado.turnosReasignados,
-      deudasPreviasDetectadas: resultado.deudasPreviasLote.length
+      deudaTransferida: resultado.deudaTransferida.obligaciones.length
+        ? { obligaciones: resultado.deudaTransferida.obligaciones.map(({ id, anio, valor }) => ({ id, anio, valor })), total: resultado.deudaTransferida.total }
+        : undefined
     }
   });
-  const advertenciaDeuda = resultado.deudasPreviasLote.length
-    ? ` Advertencia: El titular anterior registra ${resultado.deudasPreviasLote.length} obligación(es) pendiente(s) de agua.`
+  const { obligaciones: deuda, total: deudaTotal } = resultado.deudaTransferida;
+  const avisoDeuda = deuda.length
+    ? ` ${deuda.length} cuota(s) anual(es) de agua pendiente(s) del lote (total $${deudaTotal.toFixed(2)}) pasaron al nuevo titular.`
     : '';
   const message = resultado.anterior
-    ? `Titularidad transferida a ${resultado.nuevo.nombre}.${resultado.turnosReasignados ? ` ${resultado.turnosReasignados} turno(s) de riego pasaron al nuevo titular.` : ''}${advertenciaDeuda}`
+    ? `Titularidad transferida a ${resultado.nuevo.nombre}.${resultado.turnosReasignados ? ` ${resultado.turnosReasignados} turno(s) de riego pasaron al nuevo titular.` : ''}${avisoDeuda}`
     : 'Titularidad asignada correctamente. El lote ahora pertenece al usuario seleccionado.';
   return res.json({
     status: 'OK',
     message,
     turnosReasignados: resultado.turnosReasignados,
-    advertenciaDeudas: resultado.deudasPreviasLote.length > 0 ? resultado.deudasPreviasLote : undefined
+    deudaTransferida: deuda.length ? { obligaciones: deuda.map(({ id, anio, valor }) => ({ id, anio, valor })), total: deudaTotal } : undefined
   });
+}
+
+/** Cuotas anuales de agua pendientes de un lote: lo que pasaría al nuevo titular si se transfiere. */
+async function getDeudaAguaLote(req, res) {
+  const { loteId } = loteParam.parse(req.params);
+  const [lotes] = await db.query('SELECT id, codigo FROM lotes WHERE id = ?', [loteId]);
+  if (!lotes.length) throw notFound('El lote no existe.');
+  const deuda = await finanzas.deudaAnualPendienteDeLote(db, loteId);
+  const data = { lote: lotes[0].codigo, total: deuda.total, obligaciones: deuda.obligaciones.map(({ id, anio, valor }) => ({ id, anio, valor })) };
+  return res.json({ status: 'OK', data });
 }
 
 module.exports = {
@@ -390,5 +394,6 @@ module.exports = {
   getLotes,
   createLote,
   updateLote,
-  linkPersonaLote
+  linkPersonaLote,
+  getDeudaAguaLote
 };
