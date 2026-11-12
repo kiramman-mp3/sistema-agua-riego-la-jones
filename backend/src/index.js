@@ -3,10 +3,24 @@ const db = require('./config/db');
 const app = require('./app');
 const logger = require('./shared/logger');
 
+const { purgarIntentosViejos } = require('./controllers/authController');
+
 const server = app.listen(env.PORT, env.HOST, () => {
   logger.info('servidor iniciado', { url: `http://${env.HOST}:${env.PORT}/api`, entorno: env.NODE_ENV });
   if (!env.esProduccion) logger.info('documentación Swagger', { url: `http://localhost:${env.PORT}/api-docs` });
 });
+
+// Los intentos fallidos de inicio de sesión viejos se borran al arrancar y una vez al día.
+async function purgar() {
+  try {
+    const borrados = await purgarIntentosViejos();
+    if (borrados) logger.info('intentos de inicio de sesión viejos eliminados', { borrados });
+  } catch (error) {
+    logger.warn('no se pudieron purgar los intentos de inicio de sesión', { err: error });
+  }
+}
+purgar();
+setInterval(purgar, 24 * 60 * 60 * 1000).unref();
 
 // Cierre ordenado: deja de aceptar conexiones, termina las peticiones en curso y libera el pool.
 let cerrando = false;
