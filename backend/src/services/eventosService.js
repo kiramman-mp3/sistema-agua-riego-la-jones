@@ -313,7 +313,7 @@ async function listarEventos(conexion, { tipo, estado, desde, hasta }) {
   const mapaSectorTotal = Object.fromEntries(comunerosPorSector.map((s) => [s.sector_id, Number(s.total)]));
 
   const [filas] = await conexion.query(
-    `SELECT e.id, e.tipo, e.titulo, e.descripcion, e.fecha, e.hora_inicio, e.hora_fin, e.lugar, e.estado,
+    `SELECT e.id, e.tipo, e.subtipo_asamblea, e.titulo, e.descripcion, e.fecha, e.hora_inicio, e.hora_fin, e.lugar, e.estado,
             e.sector_id, s.nombre AS sector_nombre,
             e.requiere_asistencia, e.genera_multa_ausencia, e.valor_multa, e.created_by_cuenta_id, e.created_at,
             CONCAT(p.nombres, ' ', p.apellidos) AS creado_por_usuario,
@@ -354,7 +354,7 @@ const DOCUMENTO_FIRMADO = (tipo) => `(SELECT d.ruta_archivo_firmado FROM documen
 /** Próximos eventos anunciados, sin datos personales. */
 async function listarEventosPublicos(conexion, limite) {
   const [filas] = await conexion.query(
-    `SELECT e.id, e.tipo, e.titulo, e.descripcion, e.fecha, e.hora_inicio, e.hora_fin, e.lugar, e.estado,
+    `SELECT e.id, e.tipo, e.subtipo_asamblea, e.titulo, e.descripcion, e.fecha, e.hora_inicio, e.hora_fin, e.lugar, e.estado,
             e.sector_id, s.nombre AS sector_nombre,
             e.genera_multa_ausencia, e.valor_multa,
             ${DOCUMENTO_FIRMADO('CONVOCATORIA')} AS convocatoria_firmada_url,
@@ -375,15 +375,16 @@ async function listarEventosPublicos(conexion, limite) {
  * cancelados no se publican. Uno con fecha futura sigue siendo próximo, aunque ya tenga el acta firmada.
  * El acta firmada se devuelve como ruta; el servidor solo la sirve a quien haya iniciado sesión.
  * Se puede filtrar por sector (también entran las convocadas a todos los sectores) y, en asambleas,
- * por subtipo. El subtipo no se guarda aparte: una asamblea es extraordinaria si su título lo dice,
- * igual que en el panel de la directiva.
+ * por subtipo, que se guarda en `subtipo_asamblea` (migración 035).
  */
 async function listarEventosPasados(conexion, { tipo, pagina, limite, sector_id: sectorId, subtipo }) {
   const filtros = [];
   const extra = [];
   if (sectorId) { filtros.push('(e.sector_id = ? OR e.sector_id IS NULL)'); extra.push(sectorId); }
   if (subtipo && tipo === 'ASAMBLEA') {
-    filtros.push(subtipo === 'EXTRAORDINARIA' ? "e.titulo LIKE '%extraordinaria%'" : "e.titulo NOT LIKE '%extraordinaria%'");
+    // Las filas sin subtipo guardado (insertadas fuera de la API) lo deducen del título, como antes.
+    filtros.push("COALESCE(e.subtipo_asamblea, CASE WHEN e.titulo LIKE '%extraordinaria%' THEN 'EXTRAORDINARIA' ELSE 'ORDINARIA' END) = ?");
+    extra.push(subtipo);
   }
   const condicion = `e.tipo = ? AND e.estado IN ('PROGRAMADO', 'CONVOCADO', 'REALIZADO')
      AND (e.estado = 'REALIZADO' OR e.fecha < ?)${filtros.map((f) => ` AND ${f}`).join('')}`;
@@ -391,7 +392,7 @@ async function listarEventosPasados(conexion, { tipo, pagina, limite, sector_id:
     `SELECT COUNT(*) AS total FROM eventos e WHERE ${condicion}`, [tipo, hoy(), ...extra]
   );
   const [filas] = await conexion.query(
-    `SELECT e.id, e.tipo, e.titulo, e.descripcion, e.fecha, e.hora_inicio, e.hora_fin, e.lugar, e.estado,
+    `SELECT e.id, e.tipo, e.subtipo_asamblea, e.titulo, e.descripcion, e.fecha, e.hora_inicio, e.hora_fin, e.lugar, e.estado,
             e.sector_id, s.nombre AS sector_nombre,
             e.genera_multa_ausencia, e.valor_multa,
             ${DOCUMENTO_FIRMADO('CONVOCATORIA')} AS convocatoria_firmada_url,
@@ -437,6 +438,9 @@ async function multaConfigurada(conexion, tipo, fecha) {
 }
 
 /** Crea una asamblea o minga con sus puntos del orden del día. La multa se toma de las tarifas. */
+/** Subtipo que se deduce del título cuando el cliente no lo envía (comportamiento anterior). */
+const subtipoPorTitulo = (titulo) => (/extraordinaria/i.test(titulo || '') ? 'EXTRAORDINARIA' : 'ORDINARIA');
+
 async function crearEvento(conexion, datos, cuentaId) {
   if (datos.fecha < hoy()) {
     throw badRequest(`La fecha de la ${datos.tipo === 'MINGA' ? 'minga' : 'asamblea'} no puede ser anterior a la fecha actual.`);
@@ -457,10 +461,10 @@ async function crearEvento(conexion, datos, cuentaId) {
   }
 
   const [r] = await conexion.query(
-    `INSERT INTO eventos (tipo, titulo, descripcion, fecha, hora_inicio, hora_fin, lugar, sector_id, requiere_asistencia,
+    `INSERT INTO eventos (tipo, subtipo_asamblea, titulo, descripcion, fecha, hora_inicio, hora_fin, lugar, sector_id, requiere_asistencia,
                           genera_multa_ausencia, valor_multa, created_by_cuenta_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [datos.tipo, datos.titulo, datos.descripcion, datos.fecha, datos.hora_inicio, datos.hora_fin,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [datos.tipo, datos.tipo === 'ASAMBLEA' ? (datos.subtipo_asamblea ?? subtipoPorTitulo(datos.titulo)) : null, datos.titulo, datos.descripcion, datos.fecha, datos.hora_inicio, datos.hora_fin,
       datos.lugar || LUGAR_POR_DEFECTO, sectorId, datos.requiere_asistencia, datos.genera_multa_ausencia, valorMulta,
       cuentaId]
   );
@@ -503,6 +507,7 @@ async function actualizarEvento(conexion, id, datos) {
   }
 
   const nuevoTitulo = datos.titulo !== undefined ? datos.titulo : evento.titulo;
+  const nuevoSubtipo = evento.tipo === 'ASAMBLEA' ? (datos.subtipo_asamblea ?? evento.subtipo_asamblea ?? subtipoPorTitulo(nuevoTitulo)) : null;
   const nuevaDescripcion = datos.descripcion !== undefined ? datos.descripcion : evento.descripcion;
   const nuevoLugar = datos.lugar !== undefined ? (datos.lugar || LUGAR_POR_DEFECTO) : evento.lugar;
   const nuevoRequiere = datos.requiere_asistencia !== undefined ? datos.requiere_asistencia : evento.requiere_asistencia;
@@ -517,14 +522,14 @@ async function actualizarEvento(conexion, id, datos) {
 
   await conexion.query(
     `UPDATE eventos
-     SET titulo = ?, descripcion = ?, fecha = ?, hora_inicio = ?, hora_fin = ?, lugar = ?,
+     SET subtipo_asamblea = ?, titulo = ?, descripcion = ?, fecha = ?, hora_inicio = ?, hora_fin = ?, lugar = ?,
          sector_id = ?, requiere_asistencia = ?, genera_multa_ausencia = ?, valor_multa = ?
      WHERE id = ?`,
-    [nuevoTitulo, nuevaDescripcion, nuevaFecha, nuevaHoraInicio, nuevaHoraFin, nuevoLugar,
+    [nuevoSubtipo, nuevoTitulo, nuevaDescripcion, nuevaFecha, nuevaHoraInicio, nuevaHoraFin, nuevoLugar,
       nuevoSectorId, nuevoRequiere, nuevoGeneraMulta, valorMulta, id]
   );
 
-  return { id, tipo: evento.tipo, titulo: nuevoTitulo, fecha: nuevaFecha };
+  return { id, tipo: evento.tipo, subtipo_asamblea: nuevoSubtipo, titulo: nuevoTitulo, fecha: nuevaFecha };
 }
 
 /**
