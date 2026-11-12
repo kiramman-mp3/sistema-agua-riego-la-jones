@@ -19,6 +19,15 @@ Lista ordenada para un servidor Linux con dominio propio. Cada paso evita un err
    ```
 
    MySQL escucha solo en local por defecto: no abra el puerto 3306.
+
+   `ALL PRIVILEGES` se limita a esta base y es necesario porque `npm run prod:preparar` y `npm run actualizar` aplican las migraciones con el mismo usuario (crean y modifican tablas, índices y claves foráneas, y algunas borran índices o tablas obsoletas). Si prefiere que el servidor web no pueda alterar el esquema, cree un segundo usuario solo para operar y use `junta_app` únicamente al migrar:
+
+   ```sql
+   CREATE USER 'junta_web'@'localhost' IDENTIFIED BY 'OTRA_CONTRASEÑA_LARGA';
+   GRANT SELECT, INSERT, UPDATE, DELETE ON junta_las_jones.* TO 'junta_web'@'localhost';
+   ```
+
+   En ese caso `backend/.env` lleva `junta_web` y, antes de cada actualización, se cambia temporalmente a `junta_app`.
 5. **Código y configuración:** clone el repositorio en `/opt/junta-las-jones` (propietario `junta`), copie `backend/.env.production.example` como `backend/.env` y complete: `DB_USER`, `DB_PASSWORD`, un `JWT_SECRET` nuevo, `FRONTEND_URL=https://su-dominio`, `ADMIN_CEDULA`/`ADMIN_NOMBRES`/`ADMIN_APELLIDOS`, `HOST=127.0.0.1` y `TRUST_PROXY=1`. Restrinja el archivo: `chmod 600 backend/.env`.
 6. **Preparar:** `npm run prod:preparar`. Instala, compila el frontend, migra y crea al primer administrador. **Anote la contraseña temporal: se muestra una sola vez.** El comando avisa si `HOST`, `TRUST_PROXY` o `FRONTEND_URL` no son coherentes entre sí.
 7. **Servicio y HTTPS:** instale `deploy/junta-backend.service.example` (sección 3) y configure Caddy (sección 2).
