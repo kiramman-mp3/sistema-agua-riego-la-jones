@@ -179,7 +179,7 @@ sistema-agua-riego-la-jones/
 ├── whatsapp-service/                  # Microservicio de integración con WhatsApp Web
 │   ├── src/                           # Autenticación QR, sesión y despachador de mensajes
 │   └── test/                          # Pruebas con cliente de mensajería simulado
-├── docs/                              # Documentación técnica, capturas y guías maestras
+├── docs/                              # Documentación técnica, guía de usuario (GUIA_DE_USUARIO.md), capturas y guías maestras
 │   └── capturas/                      # Evidencias visuales de los módulos del sistema
 ├── scripts/                           # Automatizaciones de arranque y compilación conjunta
 └── package.json                       # Scripts globales de desarrollo y producción
