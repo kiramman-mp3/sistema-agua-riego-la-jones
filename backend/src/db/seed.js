@@ -282,9 +282,9 @@ async function crearEvento(conexion, e, { cuentaId, estado }) {
     ? 'Se convoca a todos los usuarios del agua de riego. La inasistencia sin justificación genera multa.'
     : 'Traer pala, machete y azadón. La inasistencia sin justificación genera multa.';
   const [r] = await conexion.query(
-    `INSERT INTO eventos (tipo, titulo, descripcion, fecha, hora_inicio, hora_fin, lugar, estado, genera_multa_ausencia, valor_multa, created_by_cuenta_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, TRUE, ?, ?)`,
-    [e.tipo, e.titulo, descripcion, e.fecha, e.hora, e.horaFin, lugar, estado, valorMulta, cuentaId]
+    `INSERT INTO eventos (tipo, subtipo_asamblea, titulo, descripcion, fecha, hora_inicio, hora_fin, lugar, estado, genera_multa_ausencia, valor_multa, created_by_cuenta_id)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE, ?, ?)`,
+    [e.tipo, e.tipo === 'ASAMBLEA' ? (/extraordinaria/i.test(e.titulo) ? 'EXTRAORDINARIA' : 'ORDINARIA') : null, e.titulo, descripcion, e.fecha, e.hora, e.horaFin, lugar, estado, valorMulta, cuentaId]
   );
   if (e.tipo === 'ASAMBLEA') {
     const puntos = e.extraordinaria ? ['Constatación del quórum', 'Propuesta de incremento del pago anual de agua', 'Votación y resolución'] : ORDEN_DEL_DIA;
