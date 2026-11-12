@@ -34,6 +34,9 @@ app.use(requestLogger());
 
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'same-site' },
+  // Los mosaicos de OpenStreetMap exigen la cabecera Referer (su política de uso bloquea las peticiones sin ella).
+  // Solo se envía el origen del sitio, nunca la ruta ni la consulta.
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
   // Solo lo que usa la aplicación: mapas de OpenStreetMap, PDFs y QR generados en el navegador.
   contentSecurityPolicy: {
     directives: {
@@ -51,7 +54,8 @@ app.use(helmet({
     }
   }
 }));
-app.use(cors({ origin: env.FRONTEND_URL }));
+// Con credenciales: en desarrollo el frontend (ng serve) corre en otro puerto y la sesión viaja en cookie.
+app.use(cors({ origin: env.FRONTEND_URL, credentials: true }));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: false, limit: '1mb' }));
 

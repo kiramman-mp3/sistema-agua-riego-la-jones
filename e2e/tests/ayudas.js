@@ -54,11 +54,10 @@ const ARCHIVO_ESTADO = require('path').join(__dirname, '..', '.auth', 'estado.js
 const leerEstado = () => (fs.existsSync(ARCHIVO_ESTADO) ? JSON.parse(fs.readFileSync(ARCHIVO_ESTADO, 'utf8')) : {});
 const guardarEstado = (parcial) => fs.writeFileSync(ARCHIVO_ESTADO, JSON.stringify({ ...leerEstado(), ...parcial }, null, 2));
 
-/** Token de la sesión de administrador guardada por el paso de login. */
+/** Token de la sesión de administrador guardada por el paso de login (la cookie HttpOnly junta_sesion). */
 function tokenAdmin() {
   const sesion = JSON.parse(fs.readFileSync(require('path').join(__dirname, '..', '.auth', 'admin.json'), 'utf8'));
-  const item = sesion.origins.flatMap((o) => o.localStorage).find((i) => i.name === 'junta_token');
-  return item.value;
+  return sesion.cookies.find((c) => c.name === 'junta_sesion').value;
 }
 
 /** Crea por API un usuario con cuenta y devuelve sus datos y su contraseña temporal. */

@@ -192,6 +192,8 @@ test('incluye cabeceras de seguridad', async () => {
   const res = await request(app).get('/api/health');
   assert.equal(res.headers['x-content-type-options'], 'nosniff');
   assert.equal(res.headers['x-powered-by'], undefined);
+  // OpenStreetMap exige el Referer para servir los mosaicos del mapa: se envía solo el origen.
+  assert.equal(res.headers['referrer-policy'], 'strict-origin-when-cross-origin');
 });
 
 test('dos procesos que migran a la vez no aplican dos veces la misma migración', async () => {

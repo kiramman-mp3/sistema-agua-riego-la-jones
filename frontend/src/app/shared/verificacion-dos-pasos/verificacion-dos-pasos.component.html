@@ -1,0 +1,102 @@
+<section
+  class="card"
+  aria-labelledby="dos-pasos-titulo"
+  style="margin-top: 1.5rem; padding: 1.25rem"
+>
+  <h2 id="dos-pasos-titulo" style="font-size: 1.15rem; margin: 0 0 0.5rem">
+    <i class="ri-shield-keyhole-line" aria-hidden="true"></i> Verificación en dos pasos
+  </h2>
+
+  @if (error()) {
+    <div class="alert alert--danger" role="alert">{{ error() }}</div>
+  }
+
+  @switch (paso()) {
+    @case ('cargando') {
+      <p class="text-muted">Cargando…</p>
+    }
+    @case ('inactiva') {
+      <p>
+        Agrega un código de su teléfono al ingresar, además de la contraseña. Así nadie puede entrar
+        a su cuenta aunque conozca su contraseña. Necesita una aplicación de autenticación (Google
+        Authenticator, Microsoft Authenticator o Authy).
+      </p>
+      <button type="button" class="btn btn--primary" (click)="empezar()" [disabled]="trabajando()">
+        <i class="ri-qr-code-line" aria-hidden="true"></i> Activar
+      </button>
+    }
+    @case ('escanear') {
+      <ol>
+        <li>
+          Abra la aplicación de autenticación y agregue una cuenta nueva escaneando este código.
+        </li>
+        <li>Escriba el código de 6 dígitos que aparece para la Junta La Jones.</li>
+      </ol>
+      <img
+        [src]="qr()"
+        width="220"
+        height="220"
+        alt="Código QR para la aplicación de autenticación"
+      />
+      <p class="text-muted">
+        Si no puede escanearlo, escriba esta clave en la aplicación:
+        <code style="word-break: break-all">{{ secreto() }}</code>
+      </p>
+      <form (submit)="confirmar(); $event.preventDefault()" class="field" style="max-width: 18rem">
+        <label for="dos-pasos-codigo">Código de 6 dígitos</label>
+        <input
+          id="dos-pasos-codigo"
+          class="input"
+          name="codigo"
+          [(ngModel)]="codigo"
+          inputmode="numeric"
+          autocomplete="one-time-code"
+          maxlength="6"
+        />
+        <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem">
+          <button type="submit" class="btn btn--primary" [disabled]="trabajando()">
+            Confirmar
+          </button>
+          <button type="button" class="btn btn--outline" (click)="cancelar()">Cancelar</button>
+        </div>
+      </form>
+    }
+    @case ('codigos') {
+      <div class="alert alert--warning" role="alert">
+        Guarde estos códigos de recuperación en un lugar seguro (por ejemplo, impresos). Cada uno
+        sirve una sola vez para entrar si pierde el teléfono. No se vuelven a mostrar.
+      </div>
+      <ul aria-label="Códigos de recuperación" style="columns: 2; font-family: monospace">
+        @for (c of codigosRecuperacion(); track c) {
+          <li>{{ c }}</li>
+        }
+      </ul>
+      <button type="button" class="btn btn--primary" (click)="terminar()">Ya los guardé</button>
+    }
+    @case ('activa') {
+      <p>
+        <span class="pill pill--success">Activa</span> Al ingresar se le pedirá el código de su
+        aplicación de autenticación.
+      </p>
+      <form (submit)="desactivar(); $event.preventDefault()" class="field" style="max-width: 18rem">
+        <label for="dos-pasos-password">Contraseña actual para desactivarla</label>
+        <input
+          id="dos-pasos-password"
+          class="input"
+          type="password"
+          name="password"
+          [(ngModel)]="password"
+          autocomplete="current-password"
+        />
+        <button
+          type="submit"
+          class="btn btn--outline"
+          style="margin-top: 0.75rem"
+          [disabled]="trabajando()"
+        >
+          Desactivar
+        </button>
+      </form>
+    }
+  }
+</section>

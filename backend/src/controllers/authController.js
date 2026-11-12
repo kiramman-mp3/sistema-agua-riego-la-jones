@@ -1,9 +1,11 @@
 const { z } = require('zod');
+const jwt = require('jsonwebtoken');
+const { guardarSesion, borrarSesion } = require('../shared/cookies');
 const db = require('../config/db');
 const env = require('../config/env');
 const { registrarAuditoria } = require('../services/auditService');
 const { withTransaction } = require('../shared/transaction');
-const { firmarToken, ALCANCE_CAMBIO_PASSWORD } = require('../middlewares/authMiddleware');
+const { firmarToken, ALCANCE_CAMBIO_PASSWORD, ALCANCE_VERIFICAR_TOTP } = require('../middlewares/authMiddleware');
 const { compararPassword, hashPassword, necesitaRehash, problemaConPassword, HASH_FICTICIO } = require('../shared/passwords');
 const { badRequest, unauthorized, notFound } = require('../shared/errors');
 
@@ -21,7 +23,9 @@ const MENSAJE_CREDENCIALES = 'Credenciales incorrectas o la cuenta no está habi
 
 const loginSchema = z.object({
   cedula: z.string().trim().min(1, 'Ingrese su cédula.').max(20),
-  password: z.string().min(1, 'Ingrese su contraseña.').max(200)
+  password: z.string().min(1, 'Ingrese su contraseña.').max(200),
+  // Recordar la sesión al cerrar el navegador (la cookie dura lo que el token).
+  recordar: z.boolean().default(true)
 });
 
 const cambioPasswordSchema = z.object({
@@ -46,7 +50,7 @@ function usuarioPublico(fila) {
 /** Cuenta de la persona con esa cédula. No hay alias: cada cuenta se identifica solo por su cédula. */
 async function buscarCuentaPorCedula(cedula) {
   const [rows] = await db.query(
-    `SELECT c.id AS cuenta_id, c.password_hash, c.estado AS estado_cuenta, c.debe_cambiar_password,
+    `SELECT c.id AS cuenta_id, c.password_hash, c.estado AS estado_cuenta, c.debe_cambiar_password, c.totp_activo,
             p.id AS persona_id, p.cedula, p.nombres, p.apellidos, p.email, p.estado AS estado_persona,
             r.codigo AS rol_codigo, r.nombre AS rol_nombre
      FROM personas p
@@ -136,7 +140,7 @@ async function purgarIntentosViejos(conexion = db) {
  * emite un token que solo sirve para cambiarla.
  */
 async function login(req, res) {
-  const { cedula, password } = loginSchema.parse(req.body);
+  const { cedula, password, recordar } = loginSchema.parse(req.body);
   const cuenta = await buscarCuentaPorCedula(cedula);
   const ip = String(req.ip || '').slice(0, 45);
 
@@ -173,6 +177,16 @@ async function login(req, res) {
   await db.query('DELETE FROM intentos_login WHERE cuenta_id = ? AND ip = ?', [cuenta.cuenta_id, ip]);
 
   const user = usuarioPublico(cuenta);
+
+  // Con verificación en dos pasos, la contraseña correcta solo da un token intermedio para enviar el código.
+  if (cuenta.totp_activo) {
+    return res.json({
+      status: 'OK', message: 'Ingrese el código de su aplicación de autenticación.', requiereTotp: true, recordar,
+      token: firmarToken(user, { alcance: ALCANCE_VERIFICAR_TOTP }),
+      user: { nombres: user.nombres, apellidos: user.apellidos, rol: user.rol }
+    });
+  }
+
   const token = firmarToken(user, user.debeCambiarPassword ? { alcance: ALCANCE_CAMBIO_PASSWORD } : undefined);
 
   await registrarAuditoria({
@@ -180,7 +194,13 @@ async function login(req, res) {
     detalle: { rol: user.rol }
   });
 
+  entregarSesion(req, res, token, { recordar });
   return res.json({ status: 'OK', message: 'Inicio de sesión exitoso.', token, user });
+}
+
+/** Guarda el token en la cookie HttpOnly (además de devolverlo en el cuerpo para los clientes de la API). */
+function entregarSesion(req, res, token, { recordar = true } = {}) {
+  guardarSesion(req, res, token, { recordar, expiraEn: jwt.decode(token).exp * 1000 });
 }
 
 /**
@@ -217,7 +237,10 @@ async function changePassword(req, res) {
 
   const cuenta = await buscarCuentaPorCedula(req.user.cedula);
   const user = usuarioPublico(cuenta);
-  return res.json({ status: 'OK', message: 'Contraseña actualizada correctamente.', token: firmarToken(user), user });
+  const token = firmarToken(user);
+  // Conserva la duración de la sesión anterior: si era recordada, la nueva también.
+  entregarSesion(req, res, token, { recordar: req.body?.recordar !== false });
+  return res.json({ status: 'OK', message: 'Contraseña actualizada correctamente.', token, user });
 }
 
 /**
@@ -227,13 +250,14 @@ async function changePassword(req, res) {
 async function logout(req, res) {
   await db.query('UPDATE cuentas SET sesiones_validas_desde = ? WHERE id = ?', [new Date(), req.user.cuentaId]);
   await registrarAuditoria({ cuentaId: req.user.cuentaId, accion: 'LOGOUT', entidad: 'cuentas', entidadId: req.user.cuentaId, ip: req.ip });
+  borrarSesion(req, res);
   return res.json({ status: 'OK', message: 'Sesión cerrada.' });
 }
 
 /** Perfil de la cuenta autenticada. */
 async function getMe(req, res) {
   const [rows] = await db.query(
-    `SELECT c.id AS cuenta_id, c.debe_cambiar_password, c.ultimo_acceso,
+    `SELECT c.id AS cuenta_id, c.debe_cambiar_password, c.ultimo_acceso, c.totp_activo,
             p.id AS persona_id, p.cedula, p.nombres, p.apellidos, p.email, p.telefono, p.celular, p.direccion,
             r.codigo AS rol_codigo, r.nombre AS rol_nombre
      FROM cuentas c
@@ -246,8 +270,11 @@ async function getMe(req, res) {
   const fila = rows[0];
   return res.json({
     status: 'OK',
-    user: { ...usuarioPublico(fila), telefono: fila.telefono, celular: fila.celular, direccion: fila.direccion, ultimoAcceso: fila.ultimo_acceso }
+    user: {
+      ...usuarioPublico(fila), telefono: fila.telefono, celular: fila.celular, direccion: fila.direccion, ultimoAcceso: fila.ultimo_acceso,
+      totpActivo: Boolean(fila.totp_activo)
+    }
   });
 }
 
-module.exports = { login, logout, changePassword, getMe, purgarIntentosViejos };
+module.exports = { login, logout, changePassword, getMe, purgarIntentosViejos, entregarSesion };

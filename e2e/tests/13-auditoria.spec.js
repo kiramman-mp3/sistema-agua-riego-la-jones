@@ -78,9 +78,12 @@ test('un rango de fechas sin actividad no devuelve registros', async ({ page }) 
   await expect(page.getByText('Sin registros')).toBeVisible();
 });
 
-test('un administrador del sistema puede consultar la API; un usuario común no', async ({ request }) => {
+test('un administrador del sistema puede consultar la API; un usuario común no', async ({ request, playwright, baseURL }) => {
   const admin = await request.get('/api/auditoria', { headers: { Authorization: `Bearer ${tokenAdmin()}` } });
   expect(admin.status()).toBe(200);
-  const sinSesion = await request.get('/api/auditoria');
+  // El contexto de la prueba lleva la cookie de sesión del administrador: la consulta anónima va en uno limpio.
+  const anonimo = await playwright.request.newContext({ baseURL, storageState: { cookies: [], origins: [] } });
+  const sinSesion = await anonimo.get('/api/auditoria');
   expect(sinSesion.status()).toBe(401);
+  await anonimo.dispose();
 });
