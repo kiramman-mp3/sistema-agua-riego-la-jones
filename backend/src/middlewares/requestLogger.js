@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const defaultLogger = require('../shared/logger');
+const { errores5xx } = require('../shared/metricas');
 
 const UMBRAL_LENTA_MS = 2000;
 const ID_VALIDO = /^[A-Za-z0-9._-]{8,64}$/;
@@ -17,6 +18,7 @@ function requestLogger(logger = defaultLogger) {
     const inicio = process.hrtime.bigint();
 
     res.on('finish', () => {
+      errores5xx.registrar(res.statusCode);
       const duracionMs = Math.round(Number(process.hrtime.bigint() - inicio) / 1e5) / 10;
       const campos = {
         reqId: req.id,

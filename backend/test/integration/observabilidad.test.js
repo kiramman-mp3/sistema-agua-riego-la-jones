@@ -42,3 +42,9 @@ test('las consultas al pool tienen tiempo límite y se puede ajustar por consult
   const [[fila]] = await db.query('SELECT 1 AS uno');
   assert.equal(fila.uno, 1, 'el pool sigue funcionando después de un tiempo agotado');
 });
+
+test('la salud informa los errores 5xx de la última hora solo a consultas del mismo equipo', async () => {
+  const res = await request(app).get('/api/health');
+  assert.equal(res.status, 200);
+  assert.equal(typeof res.body.errores5xxUltimaHora, 'number', 'supertest llega desde 127.0.0.1');
+});

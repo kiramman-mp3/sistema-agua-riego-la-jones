@@ -12,6 +12,7 @@ const { autenticacionOpcional } = require('./middlewares/authMiddleware');
 const { servirDocumento } = require('./controllers/documentoController');
 const requestLogger = require('./middlewares/requestLogger');
 const logger = require('./shared/logger');
+const { errores5xx } = require('./shared/metricas');
 
 const app = express();
 
@@ -66,7 +67,11 @@ app.get('/api/health', async (req, res) => {
   });
   try {
     const estado = await Promise.race([db.query('SELECT 1').then(() => 'OK'), limite]);
-    if (estado === 'OK') return res.json({ status: 'OK', database: 'OK', timestamp: new Date().toISOString() });
+    // El vigilante corre en el mismo equipo: solo a él se le informa cuántos errores 5xx hubo en la última hora.
+    const local = ['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(req.ip);
+    if (estado === 'OK') {
+      return res.json({ status: 'OK', database: 'OK', timestamp: new Date().toISOString(), ...(local ? { errores5xxUltimaHora: errores5xx.total() } : {}) });
+    }
     return res.status(503).json({ status: 'ERROR', database: 'TIMEOUT', timestamp: new Date().toISOString() });
   } catch {
     return res.status(503).json({ status: 'ERROR', database: 'UNAVAILABLE', timestamp: new Date().toISOString() });
