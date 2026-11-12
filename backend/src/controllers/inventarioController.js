@@ -58,7 +58,7 @@ async function createBien(req, res) {
 
 async function updateBien(req, res) {
   const { id } = s.idParam.parse(req.params);
-  const datos = bienUpdateSchema.parse(req.body);
+  const datos = s.soloEnviados(bienUpdateSchema.parse(req.body), req.body);
 
   const [existentes] = await db.query('SELECT * FROM bienes_inventario WHERE id = ?', [id]);
   if (!existentes.length) throw notFound('Bien no encontrado en inventario.');
