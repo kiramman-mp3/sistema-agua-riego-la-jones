@@ -28,6 +28,10 @@ const esquema = z.object({
   DB_USER: z.string().default('root'),
   DB_PASSWORD: z.string().default(''),
   DB_NAME: z.string().regex(/^[A-Za-z0-9_]+$/, 'DB_NAME solo admite letras, números y guion bajo').default('junta_las_jones'),
+  // Tiempo máximo de una consulta (ms). Evita que una base colgada deje las peticiones esperando sin fin.
+  DB_QUERY_TIMEOUT_MS: z.coerce.number().int().min(1000).default(30000),
+  // Tiempo máximo de la comprobación de salud (ms): pasado ese tiempo responde 503.
+  HEALTH_TIMEOUT_MS: z.coerce.number().int().min(100).default(3000),
   JWT_SECRET: process.env.NODE_ENV === 'test'
     ? jwtBase.default('secreto-exclusivo-de-pruebas-0123456789abcdef')
     : jwtBase,
