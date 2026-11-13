@@ -1,6 +1,6 @@
 # Observaciones de la documentación funcional
 
-Inconsistencias, limitaciones y puntos no verificados encontrados al preparar la [Guía de Usuario](GUIA_DE_USUARIO.md) de la versión `v1.3.0` (2026-11-13). Complementa el [inventario funcional](INVENTARIO_FUNCIONAL.md).
+Inconsistencias, limitaciones y puntos no verificados encontrados al preparar la [Guía de Usuario](GUIA_DE_USUARIO.md) de la versión `v1.3.2` (2026-11-13). Complementa el [inventario funcional](INVENTARIO_FUNCIONAL.md).
 
 ## 1. Funciones que existen en el servidor pero no tienen pantalla
 
